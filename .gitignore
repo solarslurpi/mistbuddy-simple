@@ -1,0 +1,20 @@
+# Created by https://www.toptal.com/developers/gitignore/api/python
+# Edit at https://www.toptal.com/developers/gitignore?templates=python
+*.jpg
+*.jpeg
+output.txt
+copypaste.txt
+**/.venv
+**/__pycache__
+docs/_build/
+docs/_static/
+docs/_templates/
+**/.pytest_cache
+**/rst-test-files
+**/tests/*
+**/start_stop.json
+**/chunk_co2.py
+**/*.ipynb
+growbuddiesproject/growbuddies/resize_image.py
+growbuddiesproject/growbuddies/resize_image1.py
+pip_list.txt
