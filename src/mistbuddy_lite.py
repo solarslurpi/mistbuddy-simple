@@ -1,48 +1,83 @@
 import asyncio
+import logging
 
-from fastapi import  FastAPI, Form
+from dotenv import load_dotenv
+load_dotenv()
 
-from power_code import get_power_topics_for_tent, turn_on_power
-from settings_model import Settings
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel, confloat, field_validator
 
-misting_task = None
+from logger_code import LoggerBase
+from power_code import PowerBuddy
+from settings_model import SettingsModel, Settings
+
+logger = LoggerBase.setup_logger("MistBuddyLite", logging.DEBUG)
 
 app = FastAPI()
 
+# Define the Pydantic model with validation constraints
+class MistbuddyLiteForm(BaseModel):
+    tent_name: str
+    duration_on: confloat(gt=0, le=60)  # duration_on must be > 0 and <= 60
+
+    @field_validator("tent_name")
+    def validate_tent_name(cls, value):
+        if not Settings.is_valid_tent_name(value):
+            raise ValueError(f"Invalid tent name: {value}. Please check the growbuddies_settings file.")
+        return value
+
+# Class to encapsulate the state and logic
+class MistBuddyManager:
+    def __init__(self, settings: SettingsModel):
+        self.settings = settings
+        self.power_instance = None
+        self.stop_event = None
+        self.timer_task = None
+
+    async def start_mistbuddy(self, tent_name: str, duration_on: float):
+        await self.stop_mistbuddy()  # Stop any running misting, just in case
+
+        try:
+            self.power_instance = PowerBuddy(tent_name, self.settings)
+        except Exception as e:
+            await self.stop_mistbuddy()
+            raise HTTPException(status_code=500, detail=f"Error creating PowerBuddy instance. Error: {e}")
+
+        self.power_instance.start()
+
+        # Start the timer to run turn_on_power_task every 60 seconds
+        self.stop_event = asyncio.Event()
+        self.timer_task = asyncio.create_task(self.power_instance.async_timer(60, self.stop_event, duration_on))
+
+    async def stop_mistbuddy(self):
+        if self.timer_task:
+            self.timer_task.cancel()
+            try:
+                await self.timer_task
+            except asyncio.CancelledError:
+                pass
+        if self.power_instance:
+            self.power_instance.stop()
+        if self.stop_event:
+            self.stop_event.set()
+        self.timer_task = None
+        self.stop_event = None
+        self.power_instance = None
+
+# Initialize the settings once and pass it to MistBuddyManager
+settings = Settings.load()
+mistbuddy_manager = MistBuddyManager(settings)
+
 @app.post("/api/v1/mistbuddy-lite/start")
-async def mistbuddy_lite_start(tent_name: str = Form(...), duration_on: int = Form(...)):
-    global misting_task
-    # Get the mqtt topics based on the tent name. Each tent has their own mistbuddy.  Send POWER ON for duration_on seconds.
-    settings = Settings.load()
-    power_topics = get_power_topics_for_tent(tent_name, settings)
-    misting_task = asyncio.create_task(mist_duration_every_minute(duration_on, power_topics))
-    return {"tent_name": tent_name}
+async def mistbuddy_lite_start(form_data: MistbuddyLiteForm = Depends(), manager: MistBuddyManager = Depends(lambda: mistbuddy_manager)):
+    await manager.start_mistbuddy(form_data.tent_name, form_data.duration_on)
+    return {"status": f"mistbuddy lite spewing mist every {form_data.duration_on} seconds each minute."}
 
 @app.get("/api/v1/mistbuddy-lite/stop")
-async def mistbuddy_lite_stop():
-    global misting_task
-    if misting_task:
-
-        misting_task.cancel()
-        misting_task = None
-    return {"status": "stopped"}
-
-@app.post("/api/v1/mistbuddy-lite/duration_on")
-async def mistbuddy_lite_duration_on(duration_on: int = Form(...)):
-    duration_on = duration_on
-    return {"duration_on": duration_on}
-
+async def mistbuddy_lite_stop(manager: MistBuddyManager = Depends(lambda: mistbuddy_manager)):
+    await manager.stop_mistbuddy()
+    return {"status": "stopped misting."}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
-
-async def mist_duration_every_minute(duration_on, power_topics):
-    try:
-        while True:
-            asyncio.create_task(turn_on_power(duration_on, power_topics))
-            await asyncio.sleep(60)
-    except asyncio.CancelledError:
-        cleanup()
-    except Exception as e: # unexpected.
-        raise e
+    uvicorn.run("mistbuddy_lite:app", host="0.0.0.0", port=8080, reload=True)

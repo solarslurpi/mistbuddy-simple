@@ -1,0 +1,24 @@
+# Use Python 3.12 as the parent image
+FROM python:3.12-slim
+
+# Set the working directory in the container
+WORKDIR /usr/app
+# Copy the source code
+COPY src/ /usr/app/src
+COPY GrowBuddies_shared/ /usr/app/GrowBuddies_shared
+
+# Set environment variables
+ENV PYTHONPATH=/usr/app/src:/usr/app/GrowBuddies_shared
+ENV SHARED_PATH=/usr/app/GrowBuddies_shared
+
+# Copy the requirements file and install dependencies
+COPY requirements.txt ./
+# Install any needed packages specified in requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Make port 8080 available to the world outside this container
+EXPOSE 8080
+
+
+# Run mistbuddy_lite.py when the container launches
+CMD ["python", "/usr/app/src/mistbuddy_lite.py"]

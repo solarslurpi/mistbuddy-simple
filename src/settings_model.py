@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field,  PrivateAttr
 from typing import Dict, List
 
-shared_path = os.getenv("shared_path", "GrowBuddies_shared")
+SHARED_PATH = os.getenv("SHARED_PATH", "GrowBuddies_shared")
 
 class GlobalSettings(BaseModel):
     hostname: str
@@ -33,22 +33,45 @@ class TentConfig(BaseModel):
     MistBuddy: PIDConfig
     CO2Buddy: PIDConfig
 
-class Settings(BaseModel):
+class SettingsModel(BaseModel):
     global_settings: GlobalSettings
     pid_configs: Dict[str, TentConfig]
 
-    @staticmethod
-    def load() -> None:
-        """Load the growbuddies_settings.json file and returns an instance of the Settings class.
+class Settings:
+    _instance = None
+    _settings_instance: SettingsModel = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Settings, cls).__new__(cls)
+            cls._settings_instance = None  # Ensure this is reset for the new instance
+        return cls._instance
+
+
+    @classmethod
+    def load(cls) -> SettingsModel:
+        """Load the growbuddies_settings.json file and return an instance of the SettingsModel class.
 
         Raises:
-            Exception: Returns a string letting the caller know the json file could not be opened.
+            FileNotFoundError: If the JSON file could not be opened.
         """
+        if cls._settings_instance is not None:
+            return cls._settings_instance
+
         try:
-            filepath = os.path.join(shared_path, "growbuddies_settings.json")
+            filepath = os.path.join(SHARED_PATH, "growbuddies_settings.json")
             with open(filepath) as json_file:
                 settings_dict = json.load(json_file)
+            cls._settings_instance = SettingsModel(**settings_dict)
+            print(f"Loaded settings: {cls._settings_instance}")  # Debugging statement
         except FileNotFoundError as e:
-            raise e
-        settings = Settings(**settings_dict)
-        return settings
+            raise FileNotFoundError(f"Could not open the settings file: {e}")
+        except Exception as e:
+            raise Exception(f"An error occurred while loading the settings: {e}")
+
+        return cls._settings_instance
+
+    @classmethod
+    def is_valid_tent_name(cls, tent_name: str) -> bool:
+        settings = cls.load()
+        return tent_name in settings.pid_configs
