@@ -4,7 +4,7 @@ import logging
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import Body, FastAPI, Depends, HTTPException
 from pydantic import BaseModel, confloat, field_validator
 
 from logger_code import LoggerBase
@@ -69,7 +69,7 @@ settings = Settings.load()
 mistbuddy_manager = MistBuddyManager(settings)
 
 @app.post("/api/v1/mistbuddy-lite/start")
-async def mistbuddy_lite_start(form_data: MistbuddyLiteForm = Depends(), manager: MistBuddyManager = Depends(lambda: mistbuddy_manager)):
+async def mistbuddy_lite_start(form_data: MistbuddyLiteForm = Body(...), manager: MistBuddyManager = Depends(lambda: mistbuddy_manager)):
     await manager.start_mistbuddy(form_data.tent_name, form_data.duration_on)
     return {"status": f"mistbuddy lite spewing mist every {form_data.duration_on} seconds each minute."}
 
