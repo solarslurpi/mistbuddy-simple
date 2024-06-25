@@ -14,3 +14,5 @@ gpu_mem=16
 
 2. move this project to gus.
 = check into github.
+- clone MistBuddy
+- clone GrowBuddies_shared within the MistBuddy directory at the same level as src
