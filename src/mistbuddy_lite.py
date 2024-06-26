@@ -2,26 +2,19 @@ import asyncio
 import logging
 import os
 import sys
-
-
+# I tried to get PYTHONPATH to work from .env, but no luck with
+# the GrowBuddies_shared directory. So, I attach it to sys.path.
+sys.path.append('/root/projects/mistBuddy/GrowBuddies_shared')
 # from dotenv import load_dotenv
 # load_dotenv()
-
-# Print each directory in the sys.path list
-print("sys.path:")
-for path in sys.path:
-    print(path)
-# Print the PYTHONPATH environment variable
-print("PYTHONPATH:")
-print(os.environ.get('PYTHONPATH', 'PYTHONPATH not set'))
 
 
 from fastapi import Body, FastAPI, Depends, HTTPException
 from pydantic import BaseModel, confloat, field_validator
 
-from GrowBuddies_shared.logger_code import LoggerBase
-from GrowBuddies_shared.power_code import PowerBuddy
-from GrowBuddies_shared.settings_model import SettingsModel, Settings
+from logger_code import LoggerBase
+from power_code import PowerBuddy
+from settings_model import SettingsModel, Settings
 
 logger = LoggerBase.setup_logger("MistBuddyLite", logging.DEBUG)
 
