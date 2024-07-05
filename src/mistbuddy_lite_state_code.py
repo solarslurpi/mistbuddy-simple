@@ -1,7 +1,7 @@
 import json
 import os
 import re
-import socket
+from typing import Optional
 
 from ipaddress import ip_address, AddressValueError
 from pydantic import BaseModel, Field, field_validator
@@ -53,54 +53,16 @@ class ServicesAddress(BaseModel):
         # except socket.error:
         #     raise AddressValueError('Hostname could not be resolved.')
 
-    @classmethod
-    def load_services_address_from_growbuddies_settings(cls, file_path):
-        '''Load the services addresses from the growbuddies_settings.json file.'''
-        with open(file_path, "r") as f:
-            settings = json.load(f)
-            global_settings = settings['global_settings']
-            try:
-                 # When initializing, pydantic will ignore any extra keys in the dictionary.
-                 services_address = cls(**global_settings)
-                 return services_address
-            except KeyError:
-                raise KeyError("host_ip not found within global_settings in growbuddies_settings.json")
+
 
 # -------------- MistBuddyLite_state ----------------
 class MistBuddyLite_state(ServicesAddress):
     '''Properties specific to running the MistBuddyLite software with a MistBuddy.'''
     duration_on: float = Field(..., gt=0, le=60, description="Duration in seconds for the mist output from the MistBuddy device.")
     name: str = Field(..., description="Specifies the MistBuddy's name.")
-
-    @field_validator('name')
-    def validate_name(cls, v):
-        v = v.strip()
-        if not v:
-            raise ValueError("Name cannot be empty or just whitespace")
-        if len(v) > 64:
-            raise ValueError("Name must be 64 characters or less")
-        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
-            raise ValueError("Name must contain only alphanumeric characters, underscores, and hyphens.")
-        return v
-
-    @field_validator('duration_on')
-    def validate_duration_on(cls, v):
-        if not isinstance(v, (int, float)):
-            raise ValueError("Duration must be a number.")
-        if v <= 0:
-            raise ValueError("Duration must be greater than 0.")
-        return v
-
-
-
+    power_messages: Optional[list[str]] =  Field(None, min_length=2, max_length=2, description="List of MQTT topics for the power switches associated with the MistBuddy device.")
 
 #  -------------- MustBuddyLite_state ----------------
-class MistBuddyLite_state(ServicesAddress):
-    '''Properties specific to running the MistBuddyLite software with a MistBuddy.'''
-
-    duration_on: float = Field(..., gt=0, le=60, description="Duration in seconds for the mist output from the MistBuddy device. This value is specified during the 'start' endpoint call. Valid range: 1-60 seconds, ensuring misting cycles align with a one-minute interval.")
-    name: str = Field(..., description="Specifies the MistBuddy's name, required for the 'start' endpoint call. Utilized for identifying the corresponding MQTT topics for the device.")
-
     @field_validator('name')
     def validate_name(cls, v):
         v = v.strip()
@@ -122,3 +84,23 @@ class MistBuddyLite_state(ServicesAddress):
         if v <= 0:  # Assuming duration must be greater than 0
             raise ValueError("Duration must be greater than 0.")
         return v
+
+    @field_validator('power_messages')
+    def validate_power_messages(cls, v):
+        '''The power messages are sent to Tasmota devices.  Tasmota uses the schema: cmnd/<device_name>/POWER.  The MistBuddy device has 2 power switches: one for the fan and one for the mister.  The power messages must be a list with exactly 2 elements. The check to make sure there are only 2 elements is done in the field_validator.  This function checks that the elements are in the correct format.'''
+        tasmota_command_pattern = r'^cmnd\/[a-zA-Z0-9_-]+\/POWER$'
+        for message in v:
+            if not re.match(tasmota_command_pattern, message):
+                raise ValueError(f"Power message '{message}' does not match the expected Tasmota command format 'cmnd/<device_name>/POWER'")
+        return v
+
+    @classmethod
+    def load_growbuddies_settings(cls, file_path):
+        '''Load the services addresses from the growbuddies_settings.json file.'''
+        try:
+            with open(file_path, "r") as f:
+                settings = json.load(f)
+                return settings
+
+        except FileNotFoundError:
+            raise FileNotFoundError(f"Settings file: {file_path} not found.")
