@@ -47,22 +47,19 @@ class MistBuddyLiteController:
         self.timer_task = None
         self.stop_event = None
 
-    async def start_mistbuddy(self, mistbuddy_state: MistBuddyLite_state):
+    async def start(self, mistbuddy_state: MistBuddyLite_state):
         """
-        The MistBuddy assigned to name starts spewing mist for duration_on (<60) seconds.  It will repeat every minute until stopped.
-
+        MistBuddy tarts spewing mist for duration_on (<60) seconds.  It will repeat every minute until stopped.
         """
-        await self.stop_mistbuddy()  # Stop any running misting, just in case
-
-
+        await self.stop()  # Stop any running misting, just in case.
         self.power_instance = PowerBuddy(mistbuddy_state.address, mistbuddy_state.power_messages)
-        await self.power_instance.start()
-
+        self.power_instance.start() # not an async function
         # Start the timer to run turn_on_power_task every 60 seconds
         self.stop_event = asyncio.Event()
         self.timer_task = asyncio.create_task(self.power_instance.async_timer(60, self.stop_event, mistbuddy_state.duration_on))
 
-    async def stop_mistbuddy(self):
+    async def stop(self):
+        '''Stop spewing mist. Cleanup the timer_task, power_instance, and stop_event.'''
         if self.timer_task:
             self.timer_task.cancel()
             try:
@@ -86,30 +83,30 @@ async def mistbuddy_lite_start(mistbuddy_state: MistBuddyLite_state = Body(...),
     '''
     # Before starting, the ServicesAddress and power messages need to be in the state.
     try:
-        settings = MistBuddyLite_state.load_growbuddies_settings('growbuddies_settings.json')
+        settings = MistBuddyLite_state.load_growbuddies_settings()
         services_address = ServicesAddress(**settings['global_settings'])
         power_messages = settings['mqtt_power_messages'][mistbuddy_state.name]
     except FileNotFoundError:
-        print("growbuddies_settings.json file not found.")
+        logger.debug("growbuddies_settings.json file not found.")
         services_address, power_messages = None, None
     except JSONDecodeError:
-        print("Error decoding growbuddies_settings.json. Please check the file format.")
+        logger.debug("Error decoding growbuddies_settings.json. Please check the file format.")
         services_address, power_messages = None, None
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logger.debug(f"An unexpected error occurred: {e}")
         services_address, power_messages = None, None
     if not services_address or not power_messages:
         raise HTTPException(status_code=500, detail="Error loading services_address and power_messages from growbuddies_settings.json")
 
     mistbuddy_state.power_messages = power_messages
-    mistbuddy_state.services_address = services_address
+    mistbuddy_state.address = services_address.address
 
-    await mistbuddy_controller.start_mistbuddy(mistbuddy_state)
+    await mistbuddy_controller.start(mistbuddy_state)
     return {"status": f"mistbuddy lite spewing mist every {mistbuddy_state.duration_on} seconds each minute to the MistBuddy named {mistbuddy_state.name}."}
 
 @app.get("/api/v1/mistbuddy-lite/stop")
 async def mistbuddy_lite_stop(mistbuddy_controller: MistBuddyLiteController = Depends(lambda: MistBuddyLiteController.get_mistbuddy_controller())):
-    await mistbuddy_controller.stop_mistbuddy()
+    await mistbuddy_controller.stop()
     return {"status": "stopped misting."}
 
 if __name__ == "__main__":

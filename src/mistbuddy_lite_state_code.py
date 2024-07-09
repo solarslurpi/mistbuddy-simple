@@ -10,9 +10,9 @@ SHARED_PATH = os.getenv("SHARED_PATH", "GrowBuddies_shared")
 #  -------------- ServicesAddress ----------------
 class ServicesAddress(BaseModel):
     '''
-    The ServicesAddress model holds the ip address or name of the host that is running services such as an mqtt broker and telegraf.
+    The ServicesAddress model holds the ip address or name of the host that is running services such as an mqtt broker and telegraf. It is loaded from growbuddies_settings.json
     '''
-    address: str = Field(..., description="Valid hostname or IP address")
+    address: Optional[str] = Field(None, description="Valid hostname or IP address that will be read in by growbuddies_settings.json.")
 
     @field_validator('address')
     def validate_address(address: str) -> str:
@@ -44,25 +44,38 @@ class ServicesAddress(BaseModel):
                 raise AddressValueError(f"Invalid IP address: {address}")
         return address
 
-        # The hostname is valid, check if it can be resolved.
-        # This might be too much.
-        # try:
-        #     # Try to resolve the hostname
-        #     socket.gethostbyname(address)
-        #     return address
-        # except socket.error:
-        #     raise AddressValueError('Hostname could not be resolved.')
+class PowerMessages(BaseModel):
+    power_messages: Optional[list[str]] = Field(None, min_length=2, max_length=2, description="List of MQTT topics for the power switches associated with the MistBuddy device.")
 
+    @field_validator('power_messages')
+    def validate_power_messages(cls, v):
+        '''The power messages are sent to Tasmota devices. Tasmota uses the schema: cmnd/<device_name>/POWER. The MistBuddy device has 2 power switches: one for the fan and one for the mister. The power messages must be a list with exactly 2 elements. The check to make sure there are only 2 elements is done in the field_validator. This function checks that the elements are in the correct format.'''
+        if len(v) != 2:
+            raise ValueError("Power messages must contain exactly 2 elements.")
+
+
+        for message in v:
+
+            # If the last text after the last '/' is not 'POWER', but not in uppercase, make all characters uppercase.
+            if message.split('/')[-1].upper() != 'POWER':
+                message = '/'.join(message.split('/')[:-1]) + '/POWER'
+            cls.match_power_message_or_raise_error(message)
+        return v
+
+    @classmethod
+    def match_power_message_or_raise_error(cls, power_message:str):
+        tasmota_command_pattern = r'^cmnd\/[a-zA-Z0-9_-]+\/POWER$'
+        if not re.match(tasmota_command_pattern, power_message):
+            raise ValueError(f"Power message '{power_message}' does not match the expected Tasmota command")
+        return power_message
 
 
 # -------------- MistBuddyLite_state ----------------
-class MistBuddyLite_state(ServicesAddress):
+class MistBuddyLite_state(ServicesAddress, PowerMessages):
     '''Properties specific to running the MistBuddyLite software with a MistBuddy.'''
     duration_on: float = Field(..., gt=0, le=60, description="Duration in seconds for the mist output from the MistBuddy device.")
     name: str = Field(..., description="Specifies the MistBuddy's name.")
-    power_messages: Optional[list[str]] =  Field(None, min_length=2, max_length=2, description="List of MQTT topics for the power switches associated with the MistBuddy device.")
 
-#  -------------- MustBuddyLite_state ----------------
     @field_validator('name')
     def validate_name(cls, v):
         v = v.strip()
@@ -85,22 +98,16 @@ class MistBuddyLite_state(ServicesAddress):
             raise ValueError("Duration must be greater than 0.")
         return v
 
-    @field_validator('power_messages')
-    def validate_power_messages(cls, v):
-        '''The power messages are sent to Tasmota devices.  Tasmota uses the schema: cmnd/<device_name>/POWER.  The MistBuddy device has 2 power switches: one for the fan and one for the mister.  The power messages must be a list with exactly 2 elements. The check to make sure there are only 2 elements is done in the field_validator.  This function checks that the elements are in the correct format.'''
-        tasmota_command_pattern = r'^cmnd\/[a-zA-Z0-9_-]+\/POWER$'
-        for message in v:
-            if not re.match(tasmota_command_pattern, message):
-                raise ValueError(f"Power message '{message}' does not match the expected Tasmota command format 'cmnd/<device_name>/POWER'")
-        return v
+
 
     @classmethod
-    def load_growbuddies_settings(cls, file_path):
+    def load_growbuddies_settings(cls):
         '''Load the services addresses from the growbuddies_settings.json file.'''
+        settings = None
+        file_path = os.path.join(SHARED_PATH, "growbuddies_settings.json")
         try:
             with open(file_path, "r") as f:
                 settings = json.load(f)
                 return settings
-
         except FileNotFoundError:
             raise FileNotFoundError(f"Settings file: {file_path} not found.")
