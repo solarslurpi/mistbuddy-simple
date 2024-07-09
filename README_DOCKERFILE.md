@@ -15,3 +15,12 @@ gpu_mem=16
 curl -sSL https://get.docker.com | sh
 ```
 ### Create the Docker file
+Thank you to [dtcooper](https://hub.docker.com/r/dtcooper/raspberrypi-os) for the base rasp image w/ python.  The image used in this project is `dtcooper/raspberrypi-os:python`.  As I was researching how to get Docker running on the Raspberry Pi, I realized after hours of frustration how exceptionally thankful I am to dtcooper's work.  I was easily able to get the Docker container running on the Raspberry Pi.    Thank you!
+- [dockerfile](https://github.com/solarslurpi/mistBuddy/blob/main/dockerfile)
+
+### Build The Image
+- Start an ssh connection with the Rasp Pi.
+- Clone the mistbuddy repo.
+```bash
+git clone
+```

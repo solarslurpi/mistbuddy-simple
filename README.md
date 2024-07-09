@@ -3,9 +3,11 @@
 
 ## TL;DR
 
-MistBuddy Lite in combination with the MistBuddy device, provides the capability of automating misting within a Grow Tent.
+MistBuddy Lite is a software package that provides automatic misting for your grow tent, lasting under a minute, repeating every minute.  It does this by sending Power ON/OFF messages to a MistBuddy device.  The UI is two FastAPI endpoints: one to start misting and one to stop misting.
 
 ### How it Works
+
+A MistBuddy device has been built and the two Tasmotized power switches are inserted into active power slots. The MistBuddy Lite Docker container is running on a Raspberry Pi.  Any app that can send an HTTP POST and GET request can start and stop the misting process.  The MistBuddy Lite Docker container will send the appropriate MQTT message to the MistBuddy device to start and stop the misting process.  The number of seconds the misting process is on as well as the name of the MistBuddy device is sent in the start POST request.
 MistBuddy Lite is a FastAPI application running as a Docker image that listens for HTTP requests to start and stop misting. It communicates with the MistBuddy device over MQTT to control the misting process.
 
 ### Quick Start
@@ -60,7 +62,7 @@ MistBuddy Lite is a FastAPI application running as a Docker image that listens f
 - Detailed guide on setting up `growbuddies_settings.json`
 
 ### Core Modules
-
+- used wsl for dev environment.  Windows pathnames and file i/o makes it difficult to build projects that are ultimately destined for a Linux envrironment like the Raspbery Pi OS.
 #### MistBuddyLite_state
 - Description of attributes and validation:
   - `ServicesAddress`
