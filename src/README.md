@@ -34,3 +34,17 @@ The interactive nature of VS Code's test runner was also used and extremely usef
 
 ## LEARN: pytest-cov aids in understanding and evolving test coverage
 - pytest-cov is a plugin for pytest that generates coverage reports.
+
+# General Helpful Information
+
+## LEARN: Converting between WSL and Windows paths
+
+```bash
+# From the VS Code terminal in WSL, find out the current WSL directory path
+pwd
+# Use that path to convert to a Windows path, e.g.:
+wspath -w /root/project
+# Returned
+\\wsl.localhost\Ubuntu\root\projects
+# Which can then be used in Windows filemanager to locate the directory.
+```
