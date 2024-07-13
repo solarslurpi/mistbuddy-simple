@@ -1,6 +1,6 @@
 import pytest
 
-from mistbuddy_lite_state_code import ServicesAddress, MistBuddyLite_state
+from mistbuddy_lite_state_code import ServicesAddress, MistBuddyLiteState
 
 
 @pytest.mark.parametrize("hostname,expected", [
@@ -44,10 +44,10 @@ def test_validate_hostname_or_ip(hostname, expected):
 ])
 def test_validate_power_messages(message, expected):
     if expected:
-        assert MistBuddyLite_state.validate_power_messages(message) == message
+        assert MistBuddyLiteState.validate_power_messages(message) == message
     else:
         with pytest.raises(ValueError) as excinfo:
-            MistBuddyLite_state.validate_power_messages(message)
+            MistBuddyLiteState.validate_power_messages(message)
 
 
 def test_load_growbuddies_settings():
@@ -77,7 +77,7 @@ def test_load_growbuddies_settings():
 def test_mistbuddy_lite_state_validation(name, is_valid, duration_on):
     '''Tests the validation of the MistBuddyLite_state object. Specifically, it verifies that the 'name' and 'duration_on' properties are correctly validated according to the provided rules. This ensures that only valid requests to the start endpoint initiate misting.'''
     if is_valid:
-        instance = MistBuddyLite_state(address="192.168.68.113", name=name, duration_on=duration_on)
+        instance = MistBuddyLiteState(address="192.168.68.113", name=name, duration_on=duration_on)
         assert instance.name == name, "The name should be valid and correctly set."
         # Convert duration_on to float if it's a string or int that represents a number
         duration_as_float = float(duration_on) if isinstance(duration_on, str) and duration_on.replace('.', '', 1).isdigit() else duration_on
@@ -85,4 +85,4 @@ def test_mistbuddy_lite_state_validation(name, is_valid, duration_on):
 
     else:
         with pytest.raises(ValueError):
-            MistBuddyLite_state(address="192.168.1.1", name=name, duration_on=duration_on)
+            MistBuddyLiteState(address="192.168.1.1", name=name, duration_on=duration_on)

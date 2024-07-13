@@ -1,10 +1,17 @@
 import json
+import logging
 import os
 import re
+from json import JSONDecodeError
 from typing import Optional
 
+from fastapi import HTTPException
 from ipaddress import ip_address, AddressValueError
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, PrivateAttr
+
+from logger_code import LoggerBase
+
+logger = LoggerBase.setup_logger("MistBuddyLite", logging.DEBUG)
 
 SHARED_PATH = os.getenv("SHARED_PATH", "GrowBuddies_shared")
 #  -------------- ServicesAddress ----------------
@@ -69,12 +76,18 @@ class PowerMessages(BaseModel):
             raise ValueError(f"Power message '{power_message}' does not match the expected Tasmota command")
         return power_message
 
-
-# -------------- MistBuddyLite_state ----------------
-class MistBuddyLite_state(ServicesAddress, PowerMessages):
+class UserInput(BaseModel):
     '''Properties specific to running the MistBuddyLite software with a MistBuddy.'''
     duration_on: float = Field(..., gt=0, le=60, description="Duration in seconds for the mist output from the MistBuddy device.")
     name: str = Field(..., description="Specifies the MistBuddy's name.")
+
+    @field_validator('duration_on')
+    def validate_duration_on(cls, v):
+        if not isinstance(v, (int, float)):  # Accept both integers and floats
+            raise ValueError("Duration must be a number.")
+        if v <= 0:  # Assuming duration must be greater than 0
+            raise ValueError("Duration must be greater than 0.")
+        return v
 
     @field_validator('name')
     def validate_name(cls, v):
@@ -89,16 +102,41 @@ class MistBuddyLite_state(ServicesAddress, PowerMessages):
             raise ValueError("Name must contain only alphanumeric characters, underscores, and hyphens.")
 
         return v
+# -------------- MistBuddyLiteState ----------------
+class MistBuddyLiteState(UserInput, ServicesAddress, PowerMessages):
+    pass
 
-    @field_validator('duration_on')
-    def validate_duration_on(cls, v):
-        if not isinstance(v, (int, float)):  # Accept both integers and floats
-            raise ValueError("Duration must be a number.")
-        if v <= 0:  # Assuming duration must be greater than 0
-            raise ValueError("Duration must be greater than 0.")
-        return v
+class MistBuddyLiteStateSingleton:
+    _instance = None
 
+    @classmethod
+    def get_mistbuddy_state(cls, user_input: UserInput):
+        if cls._instance is None:
+            logger.debug("Creating a new instance of MistBuddyLiteState.")
+            try:
+                settings = cls.load_growbuddies_settings()
+                services_address = ServicesAddress(**settings['global_settings'])
+                power_messages = settings['mqtt_power_messages'][user_input.name]['mistbuddy']
+                cls._instance = MistBuddyLiteState(
+                    name=user_input.name,
+                    duration_on=user_input.duration_on,
+                    address=services_address.address,
+                    power_messages=power_messages
+                )
+            except FileNotFoundError:
+                logger.debug("growbuddies_settings.json file not found.")
+                raise
+            except json.JSONDecodeError:
+                logger.debug("Error decoding growbuddies_settings.json. Please check the file format.")
+                raise
+            except KeyError as e:
+                logger.debug(f"KeyError: {e}")
+                raise
+            except Exception as e:
+                logger.debug(f"An unexpected error occurred: {e}")
+                raise
 
+        return cls._instance
 
     @classmethod
     def load_growbuddies_settings(cls):

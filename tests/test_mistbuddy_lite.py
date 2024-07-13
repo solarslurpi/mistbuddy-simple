@@ -3,7 +3,7 @@ import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from mistbuddy_lite_code import MistBuddyLiteController, app
-from mistbuddy_lite_state_code import MistBuddyLite_state
+from mistbuddy_lite_state_code import MistBuddyLiteState
 
 @pytest.fixture
 def duration_on():
@@ -16,7 +16,7 @@ def mistbuddy_controller():
 
 @pytest.fixture
 def mistbuddy_state(duration_on):
-    return MistBuddyLite_state(name="tent_one", address="192.168.68.113", duration_on=duration_on, power_messages=["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"])
+    return MistBuddyLiteState(name="tent_one", address="192.168.68.113", duration_on=duration_on, power_messages=["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"])
 
 @pytest.fixture
 def client():

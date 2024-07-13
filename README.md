@@ -3,7 +3,7 @@
 
 ## TL;DR
 
-MistBuddy Lite is a software package that provides automatic misting for your grow tent, lasting under a minute, repeating every minute.  It does this by sending Power ON/OFF messages to a MistBuddy device.  The UI is two FastAPI endpoints: one to start misting and one to stop misting.
+MistBuddy Lite is a software package that provides automatic misting for your grow tent, lasting under a minute, repeating every minute.  It does this by sending Power ON/OFF messages to a MistBuddy device.  The UI consists of two FastAPI endpoints: one to start misting and one to stop misting.
 
 ### How it Works
 

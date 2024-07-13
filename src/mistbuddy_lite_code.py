@@ -1,7 +1,6 @@
 import asyncio
-import json
 import logging
-from json import JSONDecodeError
+
 
 # I tried to get PYTHONPATH to work from .env, but no luck with
 # the GrowBuddies_shared directory. So, I attach it to sys.path.
@@ -10,11 +9,11 @@ from json import JSONDecodeError
 # load_dotenv()
 
 
-from fastapi import Body, FastAPI, Depends, HTTPException
+from fastapi import Body, FastAPI, Depends
 
 from logger_code import LoggerBase
 from power_code import PowerBuddy
-from mistbuddy_lite_state_code import ServicesAddress, MistBuddyLite_state
+from mistbuddy_lite_state_code import  MistBuddyLiteState, MistBuddyLiteStateSingleton, UserInput
 
 
 logger = LoggerBase.setup_logger("MistBuddyLite", logging.DEBUG)
@@ -47,9 +46,9 @@ class MistBuddyLiteController:
         self.timer_task = None
         self.stop_event = None
 
-    async def start(self, mistbuddy_state: MistBuddyLite_state):
+    async def start(self, mistbuddy_state: MistBuddyLiteState):
         """
-        MistBuddy tarts spewing mist for duration_on (<60) seconds.  It will repeat every minute until stopped.
+        MistBuddy starts spewing mist for duration_on (<60) seconds.  It will repeat every minute until stopped.
         """
         await self.stop()  # Stop any running misting, just in case.
         self.power_instance = PowerBuddy(mistbuddy_state.address, mistbuddy_state.power_messages)
@@ -74,32 +73,29 @@ class MistBuddyLiteController:
         self.stop_event = None
         self.power_instance = None
 
-@app.post("/api/v1/mistbuddy-lite/start")
-async def mistbuddy_lite_start(mistbuddy_state: MistBuddyLite_state = Body(...), mistbuddy_controller: MistBuddyLiteController = Depends(lambda: MistBuddyLiteController.get_mistbuddy_controller())):
-    '''
-    Start the MistBuddy device to spew out mist for duration_on seconds. The mist spewing repeats every minute until stopped.
 
-    The endpoint expects a POST request with a JSON body that contains the duration_on and name properties of a MistBuddyLite_state object. Pydantic will parse the JSON to provide the mistbuddy_state instance.  The code is dependent on a MistBuddyLiteController instance to control the MistBuddy device. By using Depends, the code provides a singleton instances of the mistbuddy_controller.
-    '''
-    # Before starting, the ServicesAddress and power messages need to be in the state.
+# Define the dependency function to get the MistBuddyLiteState based on user_input
+async def get_mistbuddy_state(user_input: UserInput = Body(...)):
     try:
-        settings = MistBuddyLite_state.load_growbuddies_settings()
-        services_address = ServicesAddress(**settings['global_settings'])
-        power_messages = settings['mqtt_power_messages'][mistbuddy_state.name]
-    except FileNotFoundError:
-        logger.debug("growbuddies_settings.json file not found.")
-        services_address, power_messages = None, None
-    except JSONDecodeError:
-        logger.debug("Error decoding growbuddies_settings.json. Please check the file format.")
-        services_address, power_messages = None, None
+        mistbuddy_state = MistBuddyLiteStateSingleton.get_mistbuddy_state(user_input)
     except Exception as e:
-        logger.debug(f"An unexpected error occurred: {e}")
-        services_address, power_messages = None, None
-    if not services_address or not power_messages:
-        raise HTTPException(status_code=500, detail="Error loading services_address and power_messages from growbuddies_settings.json")
+        logger.error(f"Error creating MistBuddyLiteState: {e}")
+        raise
+    return mistbuddy_state
+@app.post("/api/v1/mistbuddy-lite/start")
+async def mistbuddy_lite_start(
+    user_input: UserInput = Body(...),
+    mistbuddy_controller: MistBuddyLiteController = Depends(MistBuddyLiteController.get_mistbuddy_controller),
+    mistbuddy_state: MistBuddyLiteState = Depends(get_mistbuddy_state)
+):
+    '''
+    Start the MistBuddy device to spew out mist for duration_on seconds every minute.
 
-    mistbuddy_state.power_messages = power_messages
-    mistbuddy_state.address = services_address.address
+    e.g. json input to POST:    {"duration_on: 10.0, "name": "tent_one" }
+
+    - duration_on is a float value between (0.0 < duration_on < 60.0)
+    - name is a string value that must match the name in the growbuddies_settings.json file.
+    '''
 
     await mistbuddy_controller.start(mistbuddy_state)
     return {"status": f"mistbuddy lite spewing mist every {mistbuddy_state.duration_on} seconds each minute to the MistBuddy named {mistbuddy_state.name}."}
@@ -111,4 +107,4 @@ async def mistbuddy_lite_stop(mistbuddy_controller: MistBuddyLiteController = De
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("mistbuddy_lite:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("src.mistbuddy_lite_code:app", host="0.0.0.0", port=8080, reload=True)
