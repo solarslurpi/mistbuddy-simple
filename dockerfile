@@ -31,4 +31,4 @@ ENV SHARED_PATH=/usr/app/GrowBuddies_shared
 EXPOSE 8080
 
 # Define the default command to run the application
-CMD ["python", "/usr/app/src/mistbuddy_lite.py"]
+CMD ["python", "/usr/app/src/mistbuddy_lite_code.py"]

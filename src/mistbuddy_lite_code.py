@@ -107,4 +107,4 @@ async def mistbuddy_lite_stop(mistbuddy_controller: MistBuddyLiteController = De
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("src.mistbuddy_lite_code:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run("mistbuddy_lite_code:app", host="0.0.0.0", port=8080, reload=True)
