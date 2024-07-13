@@ -5,9 +5,7 @@ from pydantic import ValidationError
 from mistbuddy_lite_state_code import PowerMessages
 from power_code import PowerBuddy, PowerOnSeconds
 
-@pytest.fixture(scope='session')
-def address():
-    return '192.168.68.113'
+
 
 @pytest.fixture(scope='session')
 def bad_address():

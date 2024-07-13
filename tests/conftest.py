@@ -3,6 +3,35 @@
 import pytest
 import json
 
+from mistbuddy_lite_code import MistBuddyLiteController
+from mistbuddy_lite_state_code import MistBuddyLiteState
+
+
+@pytest.fixture(scope='session')
+def name():
+    return 'tent_one'
+
+@pytest.fixture(scope='session')
+def address():
+    return '192.168.68.113'
+
+@pytest.fixture(scope='session')
+def duration_on():
+    return 10
+
+@pytest.fixture(scope='session')
+def power_messages():
+    return ["cmnd/mistbuddy_fan/POWER", "cmnd/mistbuddy_mister/POWER"]
+
+@pytest.fixture
+def mistbuddy_controller():
+    controller = MistBuddyLiteController.get_mistbuddy_controller()
+    return controller
+
+@pytest.fixture
+def mistbuddy_state(address,duration_on, name, power_messages):
+    return MistBuddyLiteState(name=name, address=address, duration_on=duration_on, power_messages=power_messages)
+
 @pytest.fixture()
 def growbuddies_settings(tmp_path):
     """
@@ -23,7 +52,7 @@ def growbuddies_settings(tmp_path):
             "incoming_port": 8095
         },
         "mqtt_power_messages": {
-                "tent_one": {"mistbuddy":["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"],"co2buddy":["cmnd/tent_one_co2buddy/POWER"]}
+                "tent_one": {"mistbuddy":["cmnd/mistbuddy_fan/POWER", "cmnd/mistbuddy_mister/POWER"],"co2buddy":["cmnd/tent_one_co2buddy/POWER"]}
         },
 
     }
