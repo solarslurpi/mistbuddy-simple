@@ -20,7 +20,7 @@ Thank you to [dtcooper](https://hub.docker.com/r/dtcooper/raspberrypi-os) for th
 
 ### Build The Image
 - Start an ssh connection with the Rasp Pi.
-- Clone the mistbuddy repo.
+- Clone the mistbuddy_lite repo.
 ```bash
 git clone https://github.com/solarslurpi/mistbuddy_lite.git
 ```
@@ -33,11 +33,26 @@ git clone https://github.com/solarslurpi/GrowBuddies_shared.git
 ```bash
 docker build -t solarslurpie/mistbuddy_lite:latest .
 ```
-### Verify the image runs
-- Start a container
+### Run The Image
+- Name the container `mistbuddy_lite`.
+- Start a container in detached mode (-d).
+- Map the host port 8080 to the container port 8080.
+- Always restart (see [Use a restart policy](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy))
+- Use the latest image.
 ```bash
-docker run --name mistbuddy_lite -d -p 8080:8080 solarslurpie/mistbuddy_lite:latest
+docker run --name mistbuddy_lite -d -p 8080:8080 --restart always solarslurpie/mistbuddy_lite:latest
 ```
+*Note: The restart policy and other commands can be updated after the container is running.  See [docker update](https://docs.docker.com/engine/reference/commandline/update/)*
+e.g.:
+```bash
+docker update --restart always mistbuddy_lite
+```
+And to start the container:
+```bash
+docker start mistbuddy_lite
+```
+
+
 - Check if the container is running by listing all containers
 ```bash
 docker ps -a
@@ -53,8 +68,4 @@ docker rm 57ec7dfca8ed
 The docker image that we built says it exited 4 seconds ago.  Let's check the logs.
 ```bash
 docker logs 360e677b63e8
-```
-The logfile says:
-```python
-python: can't open file '/usr/app/src/mistbuddy_lite.py': [Errno 2] No such file or directory
 ```
