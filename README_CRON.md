@@ -25,3 +25,6 @@ Stop mistbuddy_lite at 4:45 PM every day:
 45 16 * * * /opt/stop_mistbuddy_lite.sh
 ```
 ## Shell scripts
+- [start_mistbuddy_lite.sh]()
+- [stop_mistbuddy_lite.sh]()
+Are the curl commands to start and stop the mistbuddy_lite container.
