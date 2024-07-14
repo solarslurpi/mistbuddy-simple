@@ -65,16 +65,21 @@ day of month (1 to 31)
 month (1 to 12)
 day of week (0 to 6, with Sunday being 0)
 
-An asterisk (*) in a field translates to "every." For example, this expression runs a backup script at the 0th minute of every hour on every day of every month:
+An asterisk (*) in a field translates to "every."
+
+#### Viewing cron Output
+The cron daemon sends the output of the scheduled jobs to the user's email. To set up the stdout and stderr to go to a file:
+- add a path to a logfile to handle stdout.
+- redirect stderr with 2>&1 to the logfile.
 
 #### Command Examples
 Start mistbuddy_lite at 5:15 AM every day:
 ```bash
-15 5 * * * /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh
+15 5 * * * /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh >> /home/pi/mistbuddy_lite/logs/cron.log 2>&1
 ```
 Stop mistbuddy_lite at 4:45 PM every day:
 ```bash
-45 16 * * * /home/pi/mistbuddy_lite/shell_scripts/stop_mistbuddy_lite.sh
+45 16 * * * /home/pi/mistbuddy_lite/shell_scripts/stop_mistbuddy_lite.sh >> /home/pi/mistbuddy_lite/logs/cron.log 2>&1
 ```
 
 ### View the Log
@@ -86,3 +91,9 @@ journalctl -f -u cron.service
 - [start_mistbuddy_lite.sh](https://github.com/solarslurpi/mistbuddy_lite/blob/main/shell_scripts/start_mistbuddy_lite.sh).
 - [stop_mistbuddy_lite.sh](https://github.com/solarslurpi/mistbuddy_lite/blob/main/shell_scripts/stop_mistbuddy_lites.sh).
 Are the curl commands to start and stop the mistbuddy_lite container.
+
+The scripts need execute permissions:
+```bash
+chmod +x /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh
+chmod +x /home/pi/mistbuddy_lite/shell_scripts/stop_mistbuddy_lite.sh
+```
