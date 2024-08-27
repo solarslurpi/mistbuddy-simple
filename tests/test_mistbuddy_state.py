@@ -1,6 +1,6 @@
 import pytest
 
-from mistbuddy_lite_state_code import ServicesAddress, MistBuddyLiteState
+from mistbuddy_lite_state_code import ServicesAddress, MistBuddyLiteState, MistBuddyLiteStateSingleton
 
 
 @pytest.mark.parametrize("hostname,expected", [
@@ -53,12 +53,12 @@ def test_validate_power_messages(message, expected):
 def test_load_growbuddies_settings():
     '''Use the growbuddies_settings fixture (see conftest.py) to load the settings and test the load_state_from_growbuddies_settings method.'''
 
-    result = MistBuddyLite_state.load_growbuddies_settings()
+    result = MistBuddyLiteStateSingleton.load_growbuddies_settings()
 
     # Validate the result against the expected content
     assert result['global_settings']['address'] == "192.168.68.113"
     assert result['mqtt_power_messages'] == {
-        "tent_one": {"mistbuddy":["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"],"co2buddy":["cmnd/tent_one_co2buddy/POWER"]}
+        "tent_one": {"mistbuddy":["cmnd/mistbuddy_fan/POWER", "cmnd/mistbuddy_mister/POWER"],"co2buddy":["cmnd/stomabuddy/POWER"]}
     }
 
 @pytest.mark.parametrize("name, is_valid, duration_on", [

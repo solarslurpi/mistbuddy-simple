@@ -13,7 +13,7 @@ def bad_address():
 
 @pytest.fixture(scope='session')
 def power_messages():
-    return PowerMessages(power_messages=["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"])
+    return ["cmnd/tent_one_mistbuddy_fan/POWER", "cmnd/tent_one_mistbuddy_mister/POWER"]
 
 @pytest.fixture
 def services_address_mock(mocker, address):
@@ -22,8 +22,8 @@ def services_address_mock(mocker, address):
     return services_address_mock
 
 @pytest.fixture
-def power_buddy(services_address_mock, power_messages):
-    return PowerBuddy(services_address=services_address_mock, power_messages=power_messages)
+def power_buddy(address, power_messages):
+    return PowerBuddy(address=address, power_messages=power_messages)
 
 
 def test_init_success(mocker, address, services_address_mock, power_messages):
