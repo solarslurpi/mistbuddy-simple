@@ -1,4 +1,4 @@
-GrowBuddies_shared/
+
 .vscode/
 .env
 # Created by https://www.toptal.com/developers/gitignore/api/python
@@ -14,7 +14,7 @@ docs/_static/
 docs/_templates/
 **/.pytest_cache
 **/rst-test-files
-**/tests/*
+# **/tests/*
 **/start_stop.json
 **/chunk_co2.py
 **/*.ipynb
