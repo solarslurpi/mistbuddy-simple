@@ -18,10 +18,10 @@ class MistbuddyLiteForm(BaseModel):
     @field_validator("tent_name")
     def validate_tent_name(cls, value):
         if not is_valid_tent_name(value):
-            raise ValueError(f"Invalid tent name: {value}. Please check the growbuddies_settings file.")
+            raise ValueError(f"Invalid tent name: {value}. Please check the config file.")
         return value
 
-@router.post("/mistbuddy-lite/start")
+@router.post("/start")
 async def mistbuddy_lite_start(
     form_data: MistbuddyLiteForm = Body(...),
     mistbuddy_manager: MistBuddyManager = Depends(get_mistbuddy_manager)

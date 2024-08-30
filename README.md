@@ -3,18 +3,18 @@
 
 ## Introduction
 
-MistBuddy Lite is a software package running on a Raspberry Pi that provides automatic misting for your grow tent, lasting under a minute, repeating every minute.  It does this by sending Power ON/OFF messages to a MistBuddy device.
+MistBuddy Lite is a software package running on [GrowBase](https://github.com/solarslurpi/GrowBase)  that controls a [MistBuddy device](https://github.com/solarslurpi/mistbuddy_device). It sends power on/off commands for a user-specified duration, repeating the misting cycle every minute.
 
 
 
 ## How it Works
 
-A MistBuddy device has been built and the two Tasmotized power switches are inserted into active power slots. The MistBuddy Lite Docker container is running on a Raspberry Pi.  Any app that can send an HTTP POST and GET request can start and stop the misting process.  The MistBuddy Lite Docker container will send the appropriate MQTT message to the MistBuddy device to start and stop the misting process.  The number of seconds the misting process is on as well as the name of the MistBuddy device is sent in the start POST request.
-MistBuddy Lite is a FastAPI application running as a Docker image that listens for HTTP requests to start and stop misting. It communicates with the MistBuddy device over MQTT to control the misting process.
+The software manages a MistBuddy device's fan and mister by sending power on/off messages to it's smart plugs. Review the [MistBuddy device](https://github.com/solarslurpi/mistbuddy_device) for more details.
+
 
 ### Getting Started
-1. Build a [MistBuddy device](https://github.dev/solarslurpi/mistbuddy_device).
-2. Get a Raspberry Pi, install a headless server as well as Docker.
+1. Build a [MistBuddy device](https://github.com/solarslurpi/mistbuddy_lite).
+2. Build a [GrowBase](https://github.com/solarslurpi/GrowBase).  This is a Raspberry Pi server that will run the MistBuddy Lite software.
 3. Pull the MistBuddy Lite Docker image.
 
 1. **Install Requirements**

@@ -5,25 +5,22 @@ from pydantic import AnyHttpUrl, IPvAnyAddress
 from pydantic_settings import BaseSettings
 
 import src.logging_config
-from src.config import settings
+from src.config import settings, get_host_ip
 from src.service.power_code import PowerBuddy
 
 
 logger = logging.getLogger(__name__)
 
-class HostAddress(BaseSettings):
-    host_ip: AnyHttpUrl | IPvAnyAddress
 class MistBuddyManager:
     def __init__(self):
-        self.stop_event = None
-        self.timer_task = None
-        self.power_instance = None
+        self.stop_event: asyncio.Event | None = None
+        self.timer_task: asyncio.Task | None = None
+        self.power_instance: PowerBuddy | None = None
 
     async def start_mistbuddy(self, tent_name: str, duration_on: float):
         await self.stop_mistbuddy()  # Stop any running misting, just in case
         try:
-            host_address = HostAddress(host_ip=settings.global_settings.host_ip)
-            self.power_instance = PowerBuddy(tent_name, host_address.host_ip)
+            self.power_instance = PowerBuddy(tent_name, get_host_ip)
             # Start the timer to run turn_on_power_task every 60 seconds
             self.stop_event = asyncio.Event()
             self.timer_task = asyncio.create_task(self.power_instance.async_timer(60, self.stop_event, duration_on))
@@ -48,12 +45,14 @@ class MistBuddyManager:
             except asyncio.CancelledError:
                 pass
         if self.power_instance:
-            self.power_instance.stop()
+            await self.power_instance.stop()
+
         if self.stop_event:
             self.stop_event.set()
+
         self.timer_task = None
-        self.stop_event = None
         self.power_instance = None
+        self.stop_event = None
 
         mistbuddy_manager = None
         logger.info("MistBuddy stopped successfully.")

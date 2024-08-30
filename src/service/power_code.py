@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 class PowerBuddy:
     def __init__(self, tent_name:str, host_ip: str):
         try:
-            host_ip = settings.global_settings.host_ip
             self.power_topics = get_power_settings(tent_name,"MistBuddy")
             if not self.power_topics:
                 logger.error(f"No power topics returned for tent_name: {tent_name}")
@@ -25,18 +24,18 @@ class PowerBuddy:
             logger.error(f"Error creating the MQTT client.  Error: {e}")
             raise e
 
-    async def power_on(self,  seconds_on: float) -> None:
+    async def power_on(self, seconds_on: float) -> None:
         for power_command in self.power_topics:
+            # Define pulsetime_command before the try block
+            parts = power_command.split("/")
+            parts[-1] = "PulseTime"
+            pulsetime_command = "/".join(parts)
+
             try:
                 # TURN POWER ON.
                 self.mqtt_client.publish(power_command, 1, qos=1)
                 logger.info(f"Sent message to power on for {seconds_on} seconds.")
-                # Split the topic by the '/'
-                parts = power_command.split("/")
-                # Replace the last part with 'PulseTime'
-                parts[-1] = "PulseTime"
-                # Join the parts back together to form the new topic
-                pulsetime_command = "/".join(parts)
+
                 # We will use numbers between 112 and 64900 for the PulseTime (e.g.: 112 - 100 = 12 seconds)
                 pulsetime_on = seconds_on + 100
                 logger.debug(

@@ -30,7 +30,7 @@ class MQTTClient:
 
     def _setup_client(self) -> mqtt.Client:
         try:
-            client = mqtt.Client(client_id=self.client_id, clean_session=True) # Not maintaining state between connections.
+            client = mqtt.Client(client_id=self.client_id, protocol=mqtt.MQTTv5)
             client.will_set("/lwt", "offline", qos=1, retain=False)
             client.on_connect = self.on_connect
             return client
