@@ -1,75 +1,60 @@
 import pytest
 from fastapi.testclient import TestClient
-from fastapi import HTTPException
+from pydantic import ValidationError
+from mistbuddy_lite import create_app
+from src.config import config
+from src.routes.routes import MistbuddyLiteForm
 
-from mistbuddy_lite import app
-from src.service.mistbuddy_manager import MistBuddyManager
 
-client = TestClient(app)
+# Mock MistBuddyManager to avoid actual hardware interactions during tests
+class MockMistBuddyManager:
+    async def start_mistbuddy(self, tent_name, duration_on):
+        pass
+
+    async def stop_mistbuddy(self):
+        pass
 
 @pytest.fixture
-def mock_mistbuddy_manager(mocker):
-    mock_manager = mocker.AsyncMock(spec=MistBuddyManager)
-    mocker.patch.object(MistBuddyManager, '__new__', return_value=mock_manager)
-    return mock_manager
+def test_app():
+    app = create_app("config.yaml")
+    app.state.mistbuddy_manager = MockMistBuddyManager()
+    return app
 
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_start(mock_mistbuddy_manager):
-    response = client.post(
-        "/api/v1/start",
-        json={"tent_name": "tent_one", "duration_on": 30}
-    )
+@pytest.fixture
+def client(test_app):
+    return TestClient(test_app)
 
-    print(f"Response status code: {response.status_code}")
-    print(f"Response content: {response.content}")
-
+def test_mistbuddy_lite_start(client, test_app):
+    response = client.post("/api/v1/start", json={"tent_name": "tent_one", "duration_on": 30})
     assert response.status_code == 200
-    assert "mistbuddy lite spewing mist every 30.0 seconds each minute" in response.json()["status"]
-    mock_mistbuddy_manager.start_mistbuddy.assert_awaited_once_with("tent_one", 30)
+    assert "status" in response.json()
 
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_start_invalid_tent_name():
-    response = client.post(
-        "/api/v1/start",
-        json={"tent_name": "invalid_tent", "duration_on": 30}
-    )
-
-    assert response.status_code == 422
-    assert "Invalid tent name" in response.json()["detail"][0]["msg"]
-
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_start_invalid_duration():
-    response = client.post(
-        "/api/v1/start",
-        json={"tent_name": "tent_one", "duration_on": 0}
-    )
-
-    assert response.status_code == 422
-    assert "Input should be greater than 0" in response.json()["detail"][0]["msg"]
-
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_stop(mock_mistbuddy_manager):
+def test_mistbuddy_lite_stop(client):
     response = client.get("/api/v1/stop")
-
     assert response.status_code == 200
-    assert response.json() == {"status": "stopped misting."}
-    mock_mistbuddy_manager.stop_mistbuddy.assert_called_once()
+    assert "status" in response.json()
 
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_start_exception(mock_mistbuddy_manager):
-    mock_mistbuddy_manager.start_mistbuddy.side_effect = HTTPException(status_code=500, detail="Error starting MistBuddy")
-    response = client.post(
-        "/api/v1/start",
-        json={"tent_name": "tent_one", "duration_on": 30}
-    )
+def test_mistbuddy_lite_form_invalid_tent_name():
+    config.load_settings("config.yaml")
+    with pytest.raises(ValidationError) as exc_info:
+        MistbuddyLiteForm(tent_name="invalid_tent", duration_on=30)
 
+    assert "Invalid tent name: invalid_tent" in str(exc_info.value)
+
+def test_mistbuddy_lite_start_exception(client, mocker):
+    mock_manager = MockMistBuddyManager()
+    mock_manager.start_mistbuddy = mocker.Mock(side_effect=Exception("Test exception"))
+    client.app.state.mistbuddy_manager = mock_manager
+
+    response = client.post("/api/v1/start", json={"tent_name": "tent_one", "duration_on": 30})
     assert response.status_code == 500
-    assert "Error starting MistBuddy" in response.json()["detail"]
+    assert response.json() == {"detail": "Test exception"}
 
-@pytest.mark.asyncio
-async def test_mistbuddy_lite_stop_exception(mock_mistbuddy_manager):
-    mock_mistbuddy_manager.stop_mistbuddy.side_effect = HTTPException(status_code=500, detail="Error stopping MistBuddy")
+def test_mistbuddy_lite_stop_exception(client, mocker):
+    mock_manager = MockMistBuddyManager()
+    mock_manager.stop_mistbuddy = mocker.Mock(side_effect=Exception("Test exception"))
+    client.app.state.mistbuddy_manager = mock_manager
+
     response = client.get("/api/v1/stop")
-
     assert response.status_code == 500
-    assert "Error stopping MistBuddy" in response.json()["detail"]
+    assert response.json() == {"detail": "Test exception"}

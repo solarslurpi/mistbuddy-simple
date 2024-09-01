@@ -1,0 +1,13 @@
+growbase_settings:
+  hostname: gus.local
+  host_ip: 192.168.68.113
+
+tents_settings:
+  tent_one:
+    MistBuddy:
+      mqtt_power_topics:
+        - cmnd/mistbuddy_fan/POWER
+        - cmnd/mistbuddy_mister/POWER
+    CO2Buddy:
+      mqtt_power_topics:
+        - cmnd/stomabuddy/POWER

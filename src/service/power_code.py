@@ -2,7 +2,8 @@ import asyncio
 import logging
 
 import src.logging_config
-from src.config import settings, get_power_settings
+
+from src.config import config
 from src.service.mqtt_publish_code import MQTTClient
 
 logger = logging.getLogger(__name__)
@@ -10,8 +11,8 @@ logger = logging.getLogger(__name__)
 class PowerBuddy:
     def __init__(self, tent_name:str, host_ip: str):
         try:
-            self.power_topics = get_power_settings(tent_name,"MistBuddy")
-            if not self.power_topics:
+            self.power_topics = config.get_power_topics(tent_name,"MistBuddy")
+            if not self.power_topics or len(self.power_topics) == 0:
                 logger.error(f"No power topics returned for tent_name: {tent_name}")
                 raise ValueError(f"No power topics returned for tent_name: {tent_name}")
         except AttributeError as e:
