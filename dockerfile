@@ -1,5 +1,5 @@
 # Use the specified base image
-FROM dtcooper/raspberrypi-os:python3.12-bookworm
+FROM dtcooper/raspberrypi-os:python
 
 # Set the working directory in the container
 WORKDIR /usr/app
