@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, IPvAnyAddress
 from pydantic_settings import BaseSettings
 
 class GrowBaseSettings(BaseModel):
-    hostname: Optional[str] = None
     host_ip: Optional[IPvAnyAddress] = None
 
 class BuddySettings(BaseModel):
@@ -45,8 +44,9 @@ class Config:
         return tent_name in cls.get_settings().tents_settings
 
     @classmethod
-    def get_host_ip(cls) -> Optional[IPvAnyAddress]:
-        return cls.get_settings().growbase_settings.host_ip
+    def get_host_ip(cls) -> IPvAnyAddress:
+        return cls.get_settings().growbase_settings.host_ip.compressed
+
 
     @classmethod
     def get_tent_settings(cls, tent_name: str) -> Optional[TentSettings]:

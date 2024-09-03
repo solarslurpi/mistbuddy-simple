@@ -5,8 +5,6 @@
 
 MistBuddy Lite is a software package running on [GrowBase](https://github.com/solarslurpi/GrowBase)  that controls a [MistBuddy device](https://github.com/solarslurpi/mistbuddy_device). It sends power on/off commands for a user-specified duration, repeating the misting cycle every minute.
 
-
-
 ## How it Works
 
 The software manages a MistBuddy device's fan and mister by sending power on/off messages to it's smart plugs. Review the [MistBuddy device](https://github.com/solarslurpi/mistbuddy_device) for more details.
@@ -16,6 +14,8 @@ The software manages a MistBuddy device's fan and mister by sending power on/off
 1. Build a [MistBuddy device](https://github.com/solarslurpi/mistbuddy_lite).
 2. Build a [GrowBase](https://github.com/solarslurpi/GrowBase).  This is a Raspberry Pi server that will run the MistBuddy Lite software.
 3. Pull the MistBuddy Lite Docker image.
+4. Download the config.yaml file from the MistBuddy Lite repository. Modify the file to match your device settings.
+5. Run MistBuddy Lite with the command....
 
 1. **Install Requirements**
    - Make sure Python is installed on your system.

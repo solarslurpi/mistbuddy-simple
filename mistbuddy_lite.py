@@ -40,6 +40,7 @@ def create_app(config_file: str=None) -> FastAPI:
     try:
         if config_file is None:
             config_file = os.getenv('CONFIG_FILE', 'config.yaml')
+        logger.debug(f"Config file: {config_file}")
         app = FastAPI(lifespan=lifespan)
 
 
@@ -64,7 +65,7 @@ def create_app(config_file: str=None) -> FastAPI:
                 allow_methods=["*"],  # Allows all methods
                 allow_headers=["*"],  # Allows all headers
             )
-            logger.info(f"CORS middleware added {app.user_middleware}")
+            logger.debug(f"CORS middleware added {app.user_middleware}")
         except FastAPIError as e:
             logger.error(f"Failed to add CORS middleware: {str(e)}", exc_info=True)
             raise MiddlewareError(f"CORS middleware error: {str(e)}") from e
@@ -72,6 +73,7 @@ def create_app(config_file: str=None) -> FastAPI:
         # Include router
         try:
             app.include_router(router, prefix="/api/v1")
+            logger.debug(f"Router included: {router}")
         except FastAPIError as e:
             logger.error(f"Failed to include router: {str(e)}", exc_info=True)
             raise RouterInclusionError(f"Router inclusion error: {str(e)}") from e

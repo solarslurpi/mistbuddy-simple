@@ -19,11 +19,13 @@ class MQTTClient:
         self.use_ssl = use_ssl
         self.logger = logger
         self.client_id = self._generate_client_id()
+        logger.debug(f"MQTT properties. Host: {self.host}, Port: {self.port}, ClientID: {self.client_id}")
         try:
             self.client = self._setup_client()
         except Exception as e:
             logger.error(f"Error setting up MQTT client", exc_info=True)
             raise MQTTSetupError("Error setting up MQTT client") from e
+
 
     def _generate_client_id(self) -> str:
         return "".join(random.choice(string.ascii_lowercase) for _ in range(10))

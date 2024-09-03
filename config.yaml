@@ -1,6 +1,6 @@
 growbase_settings:
-  hostname: gus.local
-  host_ip: 192.168.68.113
+  hostname: beanie.local
+  host_ip: 192.168.68.67
 
 tents_settings:
   tent_one:

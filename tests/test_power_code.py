@@ -8,6 +8,8 @@ from src.service.power_code import PowerBuddy
 def host_ip():
     return config.get_host_ip()
 
+
+
 @pytest.fixture(scope="session", autouse=True)
 def load_config():
     config.load_settings('config.yaml')
@@ -22,10 +24,10 @@ def mock_mqtt_client():
     with patch('src.service.power_code.MQTTClient') as mock:
         yield mock
 
-@pytest.mark.parametrize("tent_name, should_succeed", [
-    ("tent_one",True),
-    ("tent_two", False),
-    ("tent_three", False),
+@pytest.mark.parametrize("tent_name, host_ip, should_succeed", [
+    ("tent_one",  "192.168.68.23", True),
+    ("tent_two", "192.168.68.23", False),
+    ("tent_three", "192.168.68.23", False),
 ])
 def test_power_buddy_init(tent_name, host_ip, should_succeed):
     if should_succeed:

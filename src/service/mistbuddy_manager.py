@@ -40,8 +40,6 @@ class MistBuddyManager:
                 await self.timer_task
             except asyncio.CancelledError:
                 pass
-        if self.power_instance:
-            await self.power_instance.stop()
 
         if self.stop_event:
             self.stop_event.set()
