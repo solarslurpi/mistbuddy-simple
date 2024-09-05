@@ -1,5 +1,4 @@
 growbase_settings:
-  hostname: beanie.local
   host_ip: 192.168.68.67
 
 tents_settings:

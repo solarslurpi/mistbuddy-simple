@@ -7,6 +7,18 @@ Thanks to Alex Ellis for the [Getting Started with Docker on Raspberry Pi](https
 ```bash
 curl -sSL https://get.docker.com | sh
 ```
+
+### Get Docker Permissions
+Docker is typically managed by the root user or users in the docker group.
+1. Login via `SSH` to GrowBase.
+2. Add the user you logged in with to the docker group:
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+sudo systemctl restart docker
+```
+The commands add the currently logged in user to the docker group. `newgrp` applies the changes. Then restart docker.
+
 ### Create the Docker file
 Thank you to [dtcooper](https://hub.docker.com/r/dtcooper/raspberrypi-os) for the base rasp image w/ python.  The image used in this project is `dtcooper/raspberrypi-os:python`.  As I was researching how to get Docker running on the Raspberry Pi, I realized after hours of frustration how exceptionally thankful I am to dtcooper's work.  I was easily able to get the Docker container running on the Raspberry Pi.    Thank you!
 - [dockerfile](https://github.com/solarslurpi/mistBuddy/blob/main/dockerfile)
@@ -17,15 +29,13 @@ Thank you to [dtcooper](https://hub.docker.com/r/dtcooper/raspberrypi-os) for th
 ```bash
 git clone https://github.com/solarslurpi/mistbuddy_lite.git
 ```
-- Clone the GrowBuddies_shared repo. In the mistbuddy_lite directory, clone the GrowBuddies_shared repo.
-```bash
-git clone https://github.com/solarslurpi/GrowBuddies_shared.git
-```
 - Start the Docker service.
 - From the mistbuddy_lite directory, build the Docker image.
 ```bash
 docker build -t solarslurpie/mistbuddy_lite:latest .
 ```
+### Push the Image to Dockerhub
+
 ### Run The Image
 - Name the container `mistbuddy_lite`.
 - Start a container in detached mode (-d).
@@ -33,7 +43,7 @@ docker build -t solarslurpie/mistbuddy_lite:latest .
 - Always restart (see [Use a restart policy](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy))
 - Use the latest image.
 ```bash
-docker run --name mistbuddy_lite -d -p 8080:8080 --restart always solarslurpie/mistbuddy_lite:latest
+docker run --name mistbuddy_lite -d -p 8085:8085 --restart always solarslurpie/mistbuddy_lite:latest
 ```
 *Note: The restart policy and other commands can be updated after the container is running.  See [docker update](https://docs.docker.com/engine/reference/commandline/update/)*
 e.g.:
