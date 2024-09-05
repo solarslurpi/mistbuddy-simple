@@ -21,15 +21,14 @@ RUN . "$HOME/.cargo/env" && pip install --no-cache-dir -r requirements.txt
 
 # Copy the source code
 COPY src/ /usr/app/src
-COPY mistbuddy_lite.py .
-
+COPY mistbuddy_lite.py /usr/app/
+COPY config.yaml /usr/app/
 
 # Set environment variables for the application
-ENV PYTHONPATH=.
-
+ENV PYTHONPATH=/usr/app
 
 # Expose port 8085
 EXPOSE 8085
 
 # Define the default command to run the application
-CMD ["python", "/usr/app/src/mistbuddy_lite_code.py"]
+CMD ["python", "/usr/app/mistbuddy_lite.py"]
