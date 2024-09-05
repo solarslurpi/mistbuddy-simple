@@ -2,7 +2,6 @@ import logging
 from fastapi import  APIRouter, Depends, HTTPException, Body
 from pydantic import BaseModel, confloat, field_validator
 from src.service.mistbuddy_manager import MistBuddyManager, get_mistbuddy_manager
-from src.service.dependencies import get_mistbuddy_manager
 from src.config import config
 
 logger = logging.getLogger(__name__)
