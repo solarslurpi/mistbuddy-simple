@@ -25,7 +25,7 @@ async def mistbuddy_lite_start(
     mistbuddy_manager: MistBuddyManager = Depends(get_mistbuddy_manager),
 ):
     try:
-        logger.debug(f"Starting mistbuddy lite in {form_data.tent_name} for {form_data.duration_on} seconds.")
+        logger.info(f"Starting mistbuddy lite in {form_data.tent_name} for {form_data.duration_on} seconds.")
 
         await mistbuddy_manager.start_mistbuddy(config.get_host_ip(), form_data.tent_name, form_data.duration_on)
         return {"status": f"mistbuddy lite spewing mist every {form_data.duration_on} seconds each minute."}
@@ -37,6 +37,7 @@ async def mistbuddy_lite_stop(
     mistbuddy_manager: MistBuddyManager = Depends(get_mistbuddy_manager)
 ):
     try:
+        logger.info("Stopping mistbuddy lite.")
         await mistbuddy_manager.stop_mistbuddy()
         return {"status": "mistbuddy lite stopped"}
     except Exception as e:
