@@ -1,5 +1,5 @@
-# Use the specified base image
-FROM dtcooper/raspberrypi-os:python
+# Use a specific Python version
+FROM dtcooper/raspberrypi-os:python3.12
 
 # Set the working directory in the container
 WORKDIR /usr/app
