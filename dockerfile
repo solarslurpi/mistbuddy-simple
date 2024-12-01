@@ -4,11 +4,7 @@ FROM dtcooper/raspberrypi-os:python
 # Set the working directory in the container
 WORKDIR /usr/app
 
-# Install curl
-# Download and install rust. This container uses FastAPI. Even with fastapi-slim,
-# orjson is included which is dependent on rust. I don't think fastapi-slim uses it..
-# but such is as it is.
-# Clean up the package cache. These are the files that were downloaded during apt-get and are no longer needed.
+# Install curl and rust dependencies
 RUN apt-get update && \
     apt-get install -y curl && \
     curl https://sh.rustup.rs -sSf | sh -s -- -y && \
@@ -17,12 +13,11 @@ RUN apt-get update && \
 
 # Copy the requirements file and install Python dependencies
 COPY requirements.txt ./
-RUN . "$HOME/.cargo/env" && pip install --no-cache-dir -r requirements.txt
+RUN . "/root/.cargo/env" && pip install --no-cache-dir -r requirements.txt
 
 # Copy the source code
 COPY src/ /usr/app/src
 COPY mistbuddy_lite.py /usr/app/
-
 
 # Set environment variables for the application
 ENV PYTHONPATH=/usr/app
