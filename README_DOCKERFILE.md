@@ -43,7 +43,7 @@ docker build -t solarslurpie/mistbuddy_lite:latest .
 - Always restart (see [Use a restart policy](https://docs.docker.com/config/containers/start-containers-automatically/#use-a-restart-policy))
 - Use the latest image.
 ```bash
-docker run --name mistbuddy_lite -d -p 8085:8085 --restart always solarslurpie/mistbuddy_lite:latest
+docker run -v $(pwd)/config.yaml:/usr/app/config.yaml --name mistbuddy_lite -d -p 8085:8085 --restart always solarslurpie/mistbuddy_lite:latest
 ```
 *Note: The restart policy and other commands can be updated after the container is running.  See [docker update](https://docs.docker.com/engine/reference/commandline/update/)*
 e.g.:

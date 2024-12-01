@@ -22,7 +22,7 @@ RUN . "$HOME/.cargo/env" && pip install --no-cache-dir -r requirements.txt
 # Copy the source code
 COPY src/ /usr/app/src
 COPY mistbuddy_lite.py /usr/app/
-COPY config.yaml /usr/app/
+
 
 # Set environment variables for the application
 ENV PYTHONPATH=/usr/app
