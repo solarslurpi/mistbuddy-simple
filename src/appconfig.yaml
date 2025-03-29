@@ -1,0 +1,12 @@
+growbase_settings:
+  host_ip: 192.168.68.67
+
+tents_settings:
+  tent_one:
+    MistBuddies:
+      mistbuddy_1:
+        mqtt_onoff_topic: cmnd/tent_one/mistbuddy_1/ONOFF
+        mqtt_power_topics:
+          - cmnd/tent_one/mistbuddy_1/fan/POWER
+          - cmnd/tent_one/mistbuddy_1/mister/POWER
+
