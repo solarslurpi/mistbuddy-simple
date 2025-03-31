@@ -1,0 +1,18 @@
+growbase_settings:
+  host_ip: 192.168.68.67
+
+tents_settings:
+  tent_one:
+    MistBuddies:
+      mistbuddy_1:
+        mqtt_onoff_topic: cmnd/tent_one/mistbuddy_1/ONOFF
+        mqtt_power_topics:
+          - cmnd/tent_one/mistbuddy_1/mistbuddy_fan/POWER
+          - cmnd/tent_one/mistbuddy_1/mistbuddy_mister/POWER
+
+    # --- SIMPLIFIED LIGHT STATUS CHECK ---
+    # This is a bit hardcoded. Basically, it is hardcoded to a snifferbuddy device
+    # that is in the same tent as the mistbuddies.  This just avoids the snifferbuddy
+    # discovery process assuming the snifferbuddy is already known.
+    # The code will ASSUME the response comes back on stat/.../RESULT with key "Mem1" == 1 for ON
+    light_on_topic: "cmnd/snifferbuddy/tent_one/sunshine/Mem1"

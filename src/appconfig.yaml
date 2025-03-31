@@ -1,5 +1,5 @@
 growbase_settings:
-  host_ip: 192.168.68.67
+  host_ip: 100.64.90.72
 
 tents_settings:
   tent_one:
@@ -9,4 +9,12 @@ tents_settings:
         mqtt_power_topics:
           - cmnd/tent_one/mistbuddy_1/fan/POWER
           - cmnd/tent_one/mistbuddy_1/mister/POWER
+    # --- SIMPLIFIED LIGHT STATUS CHECK ---
+    # Topic used to SEND the query command TO a snifferbuddy in the growtent to get Mem1 status
+    # The code will ASSUME the response comes back on stat/.../RESULT with key "Mem1" == 1 for ON
+    LightCheck:
+      light_on_query_topic: cmnd/snifferbuddy/tent_one/sunshine/Mem1
+      light_on_response_topic: stat/snifferbuddy/tent_one/sunshine/RESULT
+      light_on_value: 1
+      response_timeout: .5
 

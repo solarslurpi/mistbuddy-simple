@@ -224,3 +224,24 @@ The code in `src/app.py` accurately implements the flow depicted in the diagram.
 
 The code in `src/app.py` is a solid implementation of the asynchronous pattern described. It correctly handles the different execution contexts and uses the appropriate `asyncio` tools for communication and task management.
 
+----
+** TO DO: ADD TO THE INSTALLATION SCRIPT **
+
+
+Setting light on and off in Tasmota.  MistBuddy (and other devices) need to know if the light is on or off.  There is an analog reading that comes over on a snifferbuddy.  But we can simplify what mistbuddy needs to do to find out.
+
+By setting up Tasmota rules on the command line, mistbuddy can send a cmnd message and receive an answer whether the light is on or off. The rules are:
+```
+Rule1 0
+Rule1 ON Tele-ANALOG#A0<%Var1% DO mem1 0 ENDON
+Rule1 1
+
+Rule2 0
+Rule2 ON Tele-ANALOG#A0<%Var1% DO mem1 1 ENDON
+Rule2 1
+```
+Then to check the value of mem1, publish the topic `cmnd/snifferbuddy/tent_one/sunshine/Mem1`, which will return a string value of either 0 or 1.
+
+
+
+

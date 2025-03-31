@@ -1,15 +1,0 @@
-/bin/sh: 1: /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh: Permission denied
-sudo: /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh: command not found
-sudo: /home/pi/mistbuddy_lite/shell_scripts/start_mistbuddy_lite.sh: command not found
-sudo: /home/pi/mistbuddy_lite/shell_scripts/stop_mistbuddy_lite.sh: command not found
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   147  100   103  100    44    148     63 --:--:-- --:--:-- --:--:--   211100   147  100   103  100    44    147     63 --:--:-- --:--:-- --:--:--   210
-{"status":"mistbuddy lite spewing mist every 8.0 seconds each minute to the MistBuddy named tent_one."}sudo: /home/pi/mistbuddy_lite/shell_scripts/stop_mistbuddy_lite.sh: command not found
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   147  100   103  100    44    603    257 --:--:-- --:--:-- --:--:--   864
-{"status":"mistbuddy lite spewing mist every 8.0 seconds each minute to the MistBuddy named tent_one."}  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100    29  100    29    0     0     29      0  0:00:01 --:--:--  0:00:01    29100    29  100    29    0     0     29      0  0:00:01 --:--:--  0:00:01    29
-{"status":"stopped misting."}

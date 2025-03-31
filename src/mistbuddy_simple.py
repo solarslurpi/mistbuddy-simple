@@ -1,47 +1,72 @@
 import asyncio
 from paho.mqtt import client as mqtt
-from typing import List, Optional
+from typing import List, Optional, Any
 import math
 import logging # Use standard logging
+import json # Ensure json is imported
+# Import the specific config model needed
+from src.appconfig import LightCheckSettings
 
 # Get a logger specific to this module
 logger = logging.getLogger(__name__) # Use module name for logger
 
-class SimpleMistBuddy:
+class MistBuddySimple:
     # __init__ now accepts specific config values + power topics
-    def __init__(self, broker_ip: str, control_topic: str, power_topics: List[str]):
-        """Initialize using specific configuration values."""
-        logger.info(f"Initializing MistBuddy for control topic: {control_topic}")
-        # Store the passed-in config values
-        self.broker_ip = broker_ip # Use consistent naming
-        self.control_topic = control_topic
-        self.power_topics = power_topics # Store power topics
+    def __init__(self,
+                 broker_ip: str,
+                 control_topic: str,
+                 power_topics: List[str],
+                 light_check_settings: LightCheckSettings): # Use the explicit config settings object
+        """
+        Initialize the MistBuddy controller.
+        """
+        logger.info(f"Initializing MistBuddy:")
+        logger.info(f"  Control Topic: {control_topic}")
+        logger.info(f"  Broker IP: {broker_ip}")
+        logger.info(f"  Power Topics: {power_topics}")
+        logger.info(f"  Light Check Command Topic: {light_check_settings.light_on_query_topic}")
+        logger.info(f"  Light Check Response Topic: {light_check_settings.light_on_response_topic}")
 
+        # Store basic configuration
+        self.broker_ip = broker_ip
+        self.control_topic = control_topic
+        self.power_topics = power_topics
+
+        # --- Store Light Check Configuration ---
+        self.light_query_cmd_topic = light_check_settings.light_on_query_topic
+        self.light_query_resp_topic = light_check_settings.light_on_response_topic
+        self.light_check_on_val = light_check_settings.light_on_value
+        self.light_check_timeout = light_check_settings.response_timeout
+
+        # Validate power topics
         if not self.power_topics:
              logger.warning(f"No power topics provided for {control_topic}. Power control will be simulated.")
 
-        # Initialize other state
-        self.misting_task: Optional[asyncio.Task] = None # Added type hint
-        self.loop: Optional[asyncio.AbstractEventLoop] = None # Added type hint
-        self.client: Optional[mqtt.Client] = None # Added type hint
+        # Initialize state variables
+        self.misting_task: Optional[asyncio.Task] = None
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
+        self.client: Optional[mqtt.Client] = None
+        # Initialize the Future placeholder
+        self.light_check_future: Optional[asyncio.Future] = None
 
-        # Setup MQTT client (uses self.broker_ip now)
+        # Setup the MQTT client instance
         self._setup_mqtt_client()
 
     def _setup_mqtt_client(self):
         """Setup MQTT client - still in regular Python context."""
         try:
-            # Add a unique client ID suffix for each instance if running multiple
-            # client_id = f"mistbuddy-{self.control_topic.replace('/', '_')}-{random.randint(1000,9999)}"
+
             self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2) # Consider adding client_id
             self.client.on_connect = self._on_connect
             self.client.on_message = self._on_message
             # Use the broker IP stored during __init__
-            logger.info(f"Connecting to MQTT broker at {self.broker_ip}")
-            self.client.connect(self.broker_ip)
+            broker_ip_str = str(self.broker_ip)
+            logger.info(f"Connecting to MQTT broker at {broker_ip_str}")
+            self.client.connect(broker_ip_str)
+
         except Exception as e:
             logger.error(f"Failed to setup or connect MQTT client for {self.control_topic}: {e}", exc_info=True)
-            raise ConnectionError("Failed to initialize MQTT connection") from e
+            raise ConnectionError(f"Failed to initialize MQTT connection for {self.control_topic}") from e
 
     def _publish(self, topic: str, payload: str | int | float, qos: int = 1):
         """Helper method to publish MQTT messages."""
@@ -71,60 +96,179 @@ class SimpleMistBuddy:
 
 
     def _on_connect(self, client, userdata, flags, reason_code, properties):
-        """MQTT connect callback - runs in MQTT thread."""
+        """
+        MQTT connect callback - subscribes to necessary topics upon connection.
+        Runs in the MQTT client's thread.
+        """
+        # Check if the connection was successful (reason_code 0)
         if reason_code == 0:
             logger.info(f"Successfully connected to MQTT broker {self.broker_ip} for {self.control_topic}.")
             try:
+                # Subscribe to the main control topic for this mistbuddy instance
                 client.subscribe(self.control_topic)
                 logger.info(f"Subscribed to control topic: {self.control_topic}")
+
+                # Subscribe to the light check response topic
+                client.subscribe(self.light_query_resp_topic)
+                logger.info(f"Subscribed to light check response topic: {self.light_query_resp_topic}")
+                # --- END SUBSCRIPTION ---
+
             except Exception as e:
-                 logger.error(f"Failed to subscribe to {self.control_topic}: {e}", exc_info=True)
+                 # Log error if any subscription fails
+                 logger.error(f"Failed to subscribe to required topics ({self.control_topic}, {self.light_query_resp_topic}) during on_connect for {self.control_topic}: {e}", exc_info=True)
+                 # Optionally, consider how to handle failed subscriptions (e.g., prevent operation)
         else:
-            # Log specific reason codes if needed
+            # Log error if the initial connection failed
             logger.error(f"Failed to connect MQTT for {self.control_topic}. Reason code: {reason_code}")
 
     def _on_message(self, client, userdata, msg):
-        """MQTT message callback - runs in MQTT thread, must use run_coroutine_threadsafe."""
+        """
+        MQTT message callback - Decodes payload and dispatches to specific handlers based on topic.
+        Runs in the MQTT client's thread.
+        """
+        # Ensure the asyncio loop is available (needed by handlers via run_coroutine_threadsafe)
         if self.loop is None:
-             logger.error(f"Event loop not available in _on_message ({self.control_topic}). Cannot schedule task.")
+             logger.error(f"Event loop not available in _on_message ({self.control_topic}). Cannot process message for topic '{msg.topic}'.")
              return
+
+        # 1. Decode Payload (handle potential errors)
+        try:
+            payload_str = msg.payload.decode('utf-8')
+            logger.debug(f"Received message on topic '{msg.topic}': {payload_str}")
+        except UnicodeDecodeError:
+            logger.warning(f"Could not decode payload on topic '{msg.topic}' as UTF-8.")
+            return
+        except Exception as e:
+            logger.error(f"Unexpected error decoding payload on topic '{msg.topic}': {e}", exc_info=True)
+            return
+
+        # 2. Dispatch based on Topic
         try:
             if msg.topic == self.control_topic:
-                try:
-                    payload_str = msg.payload.decode()
-                    seconds = int(payload_str)
-                    logger.debug(f"Received control message on {self.control_topic}: {seconds} seconds")
-                    if seconds > 0:
-                        # Bridge from MQTT thread to async context
-                        # Analogy:
-                        #  Setup: The MQTT Worker is in one thread, the Manager is in another thread.
-                        #           The two work autonomously.
-                        #  The MQTT Worker receives a physical work order (the MQTT message).
-                        #  The work order requires action from start_misting.
-                        #  The MQTT Worker can't do the Manager's specialized async work (start_misting).
-                        #  So, the Worker takes the work order and puts it into a special, thread-safe inbox (run_coroutine_threadsafe) that automatically notifies the Manager (self.loop).
-                        #  The Manager, when free, checks their notified inbox, picks up the work order, and performs the start_misting task using their async skills.
-                        asyncio.run_coroutine_threadsafe(
-                            self.start_misting(seconds),
-                            self.loop
-                        )
-                        logger.info(f"Scheduled misting cycle start: {seconds}s for {self.control_topic}")
-                    else:
-                        # Schedule stop_misting for consistency
-                        asyncio.run_coroutine_threadsafe(
-                             self.stop_misting_async(), # Use an async version of stop
-                             self.loop
-                        )
-                        logger.info(f"Scheduled misting cycle stop for {self.control_topic}")
-                except ValueError:
-                     logger.warning(f"Invalid duration value received on {self.control_topic}: '{payload_str}'")
-                except Exception as e: # Catch errors during scheduling
-                     logger.error(f"Error scheduling task from _on_message ({self.control_topic}): {e}", exc_info=True)
-            # else:
-            #     logger.debug(f"Ignoring message on unexpected topic: {msg.topic}")
+                self._handle_control_message(payload_str)
+            elif msg.topic == self.light_query_resp_topic:
+                self._handle_light_response(payload_str)
+            # else: # Optional: Log unhandled topics
+            #     logger.debug(f"Ignoring message on unhandled topic: {msg.topic}")
         except Exception as e:
-            logger.error(f"Error processing message in _on_message ({self.control_topic}): {e}", exc_info=True)
+            # Catch unexpected errors during handler execution
+            logger.error(f"Error processing message for topic '{msg.topic}' in handler: {e}", exc_info=True)
 
+
+    def _handle_control_message(self, payload_str: str):
+        """Handles incoming messages on the misting control topic."""
+        try:
+            seconds = int(payload_str)
+            logger.debug(f"Processing control message for {self.control_topic}: {seconds} seconds")
+            if seconds > 0:
+                # Schedule start_misting (which will check lights)
+                asyncio.run_coroutine_threadsafe(self.start_misting(seconds), self.loop)
+                logger.info(f"Scheduled misting START: duration={seconds}s for {self.control_topic}")
+            else:
+                # Schedule stop_misting
+                asyncio.run_coroutine_threadsafe(self.stop_misting_async(), self.loop)
+                logger.info(f"Scheduled misting STOP for {self.control_topic}")
+        except ValueError:
+             logger.warning(f"Invalid integer value received on control topic {self.control_topic}: '{payload_str}'")
+        except Exception as e: # Catch errors during scheduling
+             logger.error(f"Error scheduling task from control message ({self.control_topic}): {e}", exc_info=True)
+
+
+    def _handle_light_response(self, payload_str: str):
+        """Handles incoming messages on the light status response topic."""
+        logger.debug(f"Processing potential light status response on {self.light_query_resp_topic}")
+        # Check if we are actually waiting for this response via the Future
+        active_future = self.light_check_future # Local reference for safety
+        if active_future and not active_future.done():
+            try:
+                # Parse the JSON payload from the response
+                data = json.loads(payload_str)
+                # ASSUMPTION: Look for the hardcoded 'Mem1' key
+                key_to_check = "Mem1"
+                if key_to_check in data:
+                    value = data[key_to_check]
+                    logger.debug(f"Parsed light status response: {key_to_check} = {value}")
+                    # Set the result on the waiting Future to unblock _check_light_status
+                    active_future.set_result(value)
+                else:
+                     logger.warning(f"Response on {self.light_query_resp_topic} missing assumed key '{key_to_check}'. Payload: {payload_str}")
+                     # Signal failure if key is missing
+                     active_future.set_exception(KeyError(f"Assumed key '{key_to_check}' not found in response"))
+            except json.JSONDecodeError:
+                logger.warning(f"Could not decode JSON from response topic {self.light_query_resp_topic}: {payload_str}")
+                # Signal failure if JSON is invalid
+                active_future.set_exception(ValueError("Invalid JSON response for light status"))
+            except Exception as e:
+                 logger.error(f"Error processing light status response payload on {self.light_query_resp_topic}: {e}", exc_info=True)
+                 # Signal failure for other processing errors
+                 active_future.set_exception(e)
+        else:
+             # Log if we received a response but weren't actively waiting
+             logger.debug(f"Received light status response on {self.light_query_resp_topic}, but not currently waiting for it.")
+    async def _check_light_status(self) -> bool:
+        """
+        Asynchronously checks the light status via MQTT request/response.
+
+        Sends a command to query Mem1 on the configured checker device and waits
+        for a response handled by _on_message/_handle_light_response.
+
+        Returns:
+            bool: True if lights are considered ON based on the response,
+                  False if lights are OFF, check times out, or an error occurs.
+        """
+        # Precheck
+        # Am I already waiting for an answer about the light status? 
+        if self.light_check_future and not self.light_check_future.done():            # 2. AND that previous check has NOT finished yet (its result/exception hasn't been set)
+            logger.warning(f"Light status check already in progress for {self.control_topic}. Aborting new check.")
+            return False 
+        # 1. Setup the Future to wait for the response
+        self.light_check_future = self.loop.create_future()
+        logger.info(f"Requesting light status check via topic: {self.light_query_cmd_topic}")
+
+        # 2. Publish the command to trigger the response
+        published = self._publish(self.light_query_cmd_topic, "") # Payload usually ignored for Mem query
+
+        if not published:
+            logger.error(f"Failed to publish light status query command to {self.light_query_cmd_topic}.")
+            if self.light_check_future and not self.light_check_future.done():
+                self.light_check_future.cancel("Publish failed")
+            self.light_check_future = None
+            return False # Assume lights OFF if we can't even ask
+              # 3. Wait for the response (or timeout)
+        lights_on = False # Default to False (safe state)
+        try:
+            logger.debug(f"Waiting up to {self.light_check_timeout}s for light status response on {self.light_query_resp_topic}")
+            result = await asyncio.wait_for(self.light_check_future, timeout=self.light_check_timeout)
+
+            # 4. Process the result received via the Future
+            logger.debug(f"Received light status check result: {result}")
+            try:
+                 # Compare the received result with the configured 'on' value
+                 result_val = int(result)
+                 config_on_val = int(self.light_check_on_val)
+                 lights_on = (result_val == config_on_val)
+                 logger.info(f"Light status check result for {self.control_topic}: Mem1={result_val} -> {'ON' if lights_on else 'OFF'}")
+            except (ValueError, TypeError) as e:
+                 logger.warning(f"Could not interpret light status result '{result}' as integer for comparison: {e}")
+                 lights_on = False # Treat uninterpretable result as OFF
+
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout waiting for light status response on {self.light_query_resp_topic} for {self.control_topic}. Assuming lights OFF.")
+            lights_on = False
+        except asyncio.CancelledError:
+             logger.info(f"Light status check cancelled for {self.control_topic}.")
+             lights_on = False
+        except Exception as e:
+            logger.error(f"Error occurred during light status check for {self.control_topic}: {e}", exc_info=True)
+            lights_on = False
+        finally:
+            # 5. Clean up the Future - crucial!
+            self.light_check_future = None
+            logger.debug("Light check future cleared.")
+
+        # 6. Return the determined state
+        return lights_on
+    # --- END NEW ME
     # --- Power control implementation ---
     def power_on(self, duration: float):
         """Control the power ON using Tasmota PulseTime logic."""
@@ -243,9 +387,16 @@ class SimpleMistBuddy:
 
         try:
             while True:
-                logger.info(f"Misting ON for {duration}s ({self.control_topic})")
-                self.power_on(duration)
-                # Calculate sleep time accurately
+                logger.info(f"Checking light status before starting misting for {self.control_topic}...")
+                lights_are_on = await self._check_light_status()
+                if lights_are_on:
+                    # Lights are ON, proceed with turning power on
+                    logger.info(f"Lights ON. Misting ON for {duration}s ({self.control_topic})")
+                    self.power_on(duration)
+                else:
+                    # Lights are OFF, skip turning power on for this pulse
+                    logger.info(f"Lights OFF. Skipping misting pulse for this cycle ({self.control_topic}).")
+                # Calculate sleep time s
                 sleep_duration = 60.0 - duration
                 logger.debug(f"Misting cycle ({self.control_topic}) sleeping for {sleep_duration:.1f}s")
                 await asyncio.sleep(sleep_duration)
