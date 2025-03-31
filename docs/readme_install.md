@@ -45,7 +45,7 @@ Now, use `pipx` to install the application directly from the official Git reposi
 
 ```bash
 # Install directly from the solarslurpie/mistbuddy-lite repository using HTTPS
-pipx install git+https://github.com/solarslurpie/mistbuddy-lite.git
+pipx install git+https://github.com/solarslurpi/mistbuddy_lite.git
 ```
 
 *   `pipx` will perform the following steps:
