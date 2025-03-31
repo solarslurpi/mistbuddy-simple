@@ -16,17 +16,25 @@ from src.logger_setup import logger_setup
 logger_setup('') # Setup root logger
 logger = logging.getLogger(__name__) # Get logger for this specific module
 
+def get_config_path() -> Path:
+    """Determines the standard path for the user configuration file."""
+    home_dir = Path.home()
+    # Ensure this directory name is consistent with documentation/setup steps
+    app_config_dir_name = "mistbuddy_simple"
+    config_dir = home_dir / ".config" / app_config_dir_name
+    # Create the directory if it doesn't exist
+    config_dir.mkdir(parents=True, exist_ok=True)
+    return config_dir / "appconfig.yaml"
+
 def main():
     """Entry point - Load config, create instance(s), run application."""
     config: Optional[AppConfig] = None
     config_path: Optional[Path] = None # Define config_path here for broader scope
 
     try:
-        # Define config path relative to the script location
-        # Adjust if your config file is elsewhere
-        project_root = Path(__file__).parent
-        config_path = project_root / 'appconfig.yaml'
-        logger.info(f"Attempting to load configuration from: {config_path}")
+
+        config_path = get_config_path()
+        logger.info(f"Attempting to load configuration from user config: {config_path}")
 
         # Load config using the class method from src.appconfig
         config = AppConfig.from_yaml(config_path)
@@ -67,7 +75,7 @@ def main():
         asyncio.run(buddy.run())
 
     except FileNotFoundError:
-        logger.critical(f"CRITICAL: Configuration file '{config_path}' not found.")
+        logger.critical(f"CRITICAL: Configuration file NOT FOUND at expected location: '{config_path}'. Please create it.")
         sys.exit(1)
     except (KeyError, ValueError, AttributeError) as e: # Catch config structure/validation/access errors
          logger.critical(f"CRITICAL: Configuration Error - {e}")
