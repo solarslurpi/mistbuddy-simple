@@ -66,25 +66,75 @@ Check if the command was successfully installed and is accessible.
 # Check if the command exists in the PATH
 which mistbuddy-lite
 ```
-
 *   You should see the output: `/home/pi/.local/bin/mistbuddy-lite` (or similar if your script name in `pyproject.toml` is different).
 *   If the command isn't found, double-check the `pipx ensurepath` step and ensure you've opened a new terminal session. Also, review the output of the `pipx install` command for any errors.
 
----
 
 ## 📝⚙️ Step 5: Create External Configuration File
 
-The application code expects its configuration file (`appconfig.yaml`) to be in a specific user directory, *outside* the `pipx` installation.
+The configuration file, `appconfig.yaml`, is placed in a `mistbuddy-simple` subdirectory of  `~/.config/` because this is the standard Linux directory for user-specific application configuration data. Keeping it here ensures your settings are easily accessible by you and are not overwritten when the main application code is updated via `pipx`.
+
+Follow these steps to create the directory and file:
 
 ```bash
 # Define the configuration directory name (must match what's in app.py's get_config_path())
-CONFIG_DIR_NAME="mistbuddy_simple" # Or "mistbuddy-lite" if you changed it in app.py
+# Default is 'mistbuddy_simple' - change variable if you modified app.py
+CONFIG_DIR_NAME="mistbuddy_simple"
 
-# Create the configuration directory
+# Create the configuration directory (e.g., /home/pi/.config/mistbuddy_simple)
 mkdir -p "/home/pi/.config/${CONFIG_DIR_NAME}"
 
 # Create and edit the configuration file using nano (or your preferred editor)
 nano "/home/pi/.config/${CONFIG_DIR_NAME}/appconfig.yaml"
 ```
 
-*   **Paste your complete and correctly structured `appconfig.yaml` content** into the `nano` editor. Ensure it matches the nested structure expected by your updated `
+**Paste your complete and correctly structured `appconfig.yaml` content** into the `nano` editor. Ensure it matches the nested structure expected by the application (with `growbase_settings` and `tents_settings`).
+*   Save the file (Ctrl+O, Enter in `nano`) and exit (Ctrl+X).
+*   Verify permissions if needed (usually `pi` user will have correct permissions in their own home directory).
+
+e.g.:
+```
+growbase_settings:
+  host_ip: beanie.local
+
+tents_settings:
+  tent_one:
+    MistBuddies:
+      mistbuddy_1:
+        mqtt_onoff_topic: cmnd/tent_one/mistbuddy_1/ONOFF
+        mqtt_power_topics:
+          - cmnd/tent_one/mistbuddy_1/fan/POWER
+          - cmnd/tent_one/mistbuddy_1/mister/POWER
+    # --- SIMPLIFIED LIGHT STATUS CHECK ---
+    # Topic used to SEND the query command TO a snifferbuddy in the growtent to get Mem1 status
+    # The code will ASSUME the response comes back on stat/.../RESULT with key "Mem1" == 1 for ON
+    LightCheck:
+      light_on_query_topic: cmnd/snifferbuddy/tent_one/sunshine/Mem1
+      light_on_response_topic: stat/snifferbuddy/tent_one/sunshine/RESULT
+      light_on_value: 1
+      response_timeout: .5
+```
+## 🧪Step 6: Test Run (Manual)
+
+Before setting up the background service, it's crucial to run the application directly from the command line to catch any immediate configuration, connection, or runtime errors.
+
+```bash
+# Run the installed command from your terminal
+mistbuddy-lite
+```
+
+*   **Observe the output:** Watch the log messages printed to your terminal. Look for:
+    *   Confirmation that the configuration file from `~/.config/mistbuddy_simple/appconfig.yaml` was loaded successfully.
+    *   Messages indicating connection attempts to the MQTT broker specified in your config.
+    *   Successful connection and subscription messages.
+    *   Any error messages or Python tracebacks. Common initial errors might relate to incorrect MQTT broker IP, connection refused, or misconfigured topics in `appconfig.yaml`.
+*   **Stop the application:** Let it run for a minute or two to ensure it doesn't crash immediately, then press `Ctrl+C` to stop it.
+
+If the application starts, attempts to connect to MQTT, and doesn't produce obvious errors related to configuration or core functionality, the installation and basic setup are likely correct.
+
+
+## ➡️🚀 Next Steps:
+
+With the manual test successful, the application is ready to be run reliably as a background service.
+
+The next logical step is to **set up the systemd service**. This involves creating a `.service` file in `/home/pi/.config/systemd/user/` which will allow the system to automatically start `mistbuddy-lite` on login/boot and restart it if it crashes. (Instructions for creating the systemd service file would typically follow here).
