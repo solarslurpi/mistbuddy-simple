@@ -20,7 +20,7 @@ def get_config_path() -> Path:
     """Determines the standard path for the user configuration file."""
     home_dir = Path.home()
     # Ensure this directory name is consistent with documentation/setup steps
-    app_config_dir_name = "mistbuddy_simple"
+    app_config_dir_name = "mistbuddy-simple"
     config_dir = home_dir / ".config" / app_config_dir_name
     # Create the directory if it doesn't exist
     config_dir.mkdir(parents=True, exist_ok=True)

@@ -1,10 +1,10 @@
-# 🍓📦 Installing MistBuddy-Lite on Raspberry Pi using Pipx and Git
+# 🍓📦 Installing mistbuddy-simple on Raspberry Pi using Pipx and Git
 
-This guide walks through installing the `mistbuddy-lite` application on a Raspberry Pi using `pipx` directly from its Git repository. `pipx` keeps the application isolated and makes updates easier.
+This guide walks through installing the `mistbuddy-simple` application on a Raspberry Pi using `pipx` directly from its Git repository. `pipx` keeps the application isolated and makes updates easier.
 
 ## 📝✅ Prerequisites
 
-1.  **Raspberry Pi with GrowBase Ecosystem:** A Raspberry Pi running Raspberry Pi OS (or similar). This guide assumes the Pi is part of a [`GrowBase` setup (solarslurpie/GrowBase)](https://github.com/solarslurpie/GrowBase). `MistBuddy-Lite` is designed to interact with the MQTT broker managed or used by `GrowBase`. Ensure `GrowBase` or at least its MQTT broker (like Mosquitto) is installed, running, and accessible on the network from this Pi. Network connectivity is essential.
+1.  **Raspberry Pi with GrowBase Ecosystem:** A Raspberry Pi running Raspberry Pi OS (or similar). This guide assumes the Pi is part of a [`GrowBase` setup (solarslurpie/GrowBase)](https://github.com/solarslurpie/GrowBase). `mistbuddy-simple` is designed to interact with the MQTT broker managed or used by `GrowBase`. Ensure `GrowBase` or at least its MQTT broker (like Mosquitto) is installed, running, and accessible on the network from this Pi. Network connectivity is essential.
 2.  **SSH Access:** You should be able to SSH into your Raspberry Pi as the `pi` user (or your standard user). All commands below assume you are logged in as `pi`.
 
 ## ⬆️🛠️ Step 1: Update System and Install 
@@ -39,22 +39,22 @@ pipx ensurepath
 
 ---
 
-## 🐙✨ Step 3: Install `mistbuddy-lite` using Pipx from Git
+## 🐙✨ Step 3: Install `mistbuddy-simple` using Pipx from Git
 
 Now, use `pipx` to install the application directly from the official Git repository on GitHub.
 
 ```bash
-# Install directly from the solarslurpie/mistbuddy-lite repository using HTTPS
-pipx install git+https://github.com/solarslurpi/mistbuddy_lite.git
+# Install directly from the solarslurpie/mistbuddy-simple repository using HTTPS
+pipx install git+https://github.com/solarslurpi/mistbuddy-simple.git
 ```
 
 *   `pipx` will perform the following steps:
-    1.  **Temporarily Clone:** Download a copy of the `solarslurpie/mistbuddy-lite` repository to a temporary location on your Pi.
+    1.  **Temporarily Clone:** Download a copy of the `solarslurpie/mistbuddy-simple` repository to a temporary location on your Pi.
     2.  **Read Config:** Read the `pyproject.toml` file from this temporary copy.
-    3.  **Create Environment:** Create an isolated virtual environment specifically for `mistbuddy-lite`.
+    3.  **Create Environment:** Create an isolated virtual environment specifically for `mistbuddy-simple`.
     4.  **Install Dependencies:** Install the required libraries (`paho-mqtt`, `pydantic`, `pyyaml`, etc.) into this environment.
-    5.  **Install Application:** Install the `mistbuddy-lite` package itself into the environment.
-    6.  **Link Command:** Create the command `mistbuddy-lite` (as specified in `[project.scripts]`) and link it into `/home/pi/.local/bin/`, making it accessible from your terminal.
+    5.  **Install Application:** Install the `mistbuddy-simple` package itself into the environment.
+    6.  **Link Command:** Create the command `mistbuddy-simple` (as specified in `[project.scripts]`) and link it into `/home/pi/.local/bin/`, making it accessible from your terminal.
     7.  **Clean Up:** Delete the temporary copy of the repository code from your Pi, leaving only the installed application and its isolated environment.
 
 
@@ -64,10 +64,58 @@ Check if the command was successfully installed and is accessible.
 
 ```bash
 # Check if the command exists in the PATH
-which mistbuddy-lite
+which mistbuddy-simple
 ```
-*   You should see the output: `/home/pi/.local/bin/mistbuddy-lite` (or similar if your script name in `pyproject.toml` is different).
+*   You should see the output: `/home/pi/.local/bin/mistbuddy-simple` (or similar if your script name in `pyproject.toml` is different).
 *   If the command isn't found, double-check the `pipx ensurepath` step and ensure you've opened a new terminal session. Also, review the output of the `pipx install` command for any errors.
+
+## 🗑️ Uninstalling `mistbuddy-simple`
+
+If you need to remove the application installed via `pipx`, follow these steps:
+
+1.  **List Installed Packages (Optional):**
+    To confirm the exact package name as registered by `pipx` (it should be `mistbuddy-simple` based on the `pyproject.toml`), you can run:
+    ```bash
+    pipx list
+    ```
+    This command shows all applications managed by `pipx` and their associated commands.
+
+2.  **Uninstall the Package:**
+    Use the `pipx uninstall` command followed by the package name:
+    ```bash
+    pipx uninstall mistbuddy-simple
+    ```
+
+3.  **What `pipx uninstall` Does:**
+    *   **Removes Environment:** Deletes the isolated virtual environment created for `mistbuddy-simple`, including the installed application code and all its dependencies (`paho-mqtt`, `pydantic`, etc.). This environment is typically located under `/home/pi/.local/pipx/venvs/`.
+    *   **Removes Command Link:** Deletes the command link (e.g., `mistbuddy-simple`) from the `pipx` binary directory (`/home/pi/.local/bin/`).
+
+4.  **What is NOT Removed (Manual Cleanup):**
+    `pipx uninstall` **only** removes the files it directly manages. You will need to manually remove other related files if desired:
+
+    *   **Configuration File:** The `appconfig.yaml` file and its directory are *not* touched. To remove them:
+        ```bash
+        # WARNING: This permanently deletes your configuration!
+        # Ensure the directory name matches what you used (e.g., mistbuddy_simple)
+        rm -rf /home/pi/.config/mistbuddy-simple
+        ```
+    *   **Systemd Service File:** If you installed the system-wide service, the `.service` file remains in `/etc/systemd/system/`.
+        *   First, stop and disable the service:
+            ```bash
+            sudo systemctl stop mistbuddy-simple.service
+            sudo systemctl disable mistbuddy-simple.service
+            ```
+        *   Then, remove the file:
+            ```bash
+            # WARNING: Ensure you are deleting the correct service file!
+            sudo rm /etc/systemd/system/mistbuddy-simple.service
+            ```
+        *   Finally, reload systemd:
+            ```bash
+            sudo systemctl daemon-reload
+            ```
+    *   **Log Files (Potentially):** If your application logs to specific files (check your `logger_setup`), these log files will also remain and need manual removal if desired. Systemd's journal logs related to the service will eventually be rotated out by the system.
+
 
 
 ## 📝⚙️ Step 5: Create External Configuration File
@@ -78,10 +126,9 @@ Follow these steps to create the directory and file:
 
 ```bash
 # Define the configuration directory name (must match what's in app.py's get_config_path())
-# Default is 'mistbuddy_simple' - change variable if you modified app.py
-CONFIG_DIR_NAME="mistbuddy_simple"
+CONFIG_DIR_NAME="mistbuddy-simple"
 
-# Create the configuration directory (e.g., /home/pi/.config/mistbuddy_simple)
+# Create the configuration directory (e.g., /home/pi/.config/mistbuddy-simple)
 mkdir -p "/home/pi/.config/${CONFIG_DIR_NAME}"
 
 # Create and edit the configuration file using nano (or your preferred editor)
@@ -94,8 +141,9 @@ nano "/home/pi/.config/${CONFIG_DIR_NAME}/appconfig.yaml"
 
 e.g.:
 ```
+# The host_ip is validated as a v4 address.  With 127.0.0.1, we are saying it is running on the GrowBase.
 growbase_settings:
-  host_ip: beanie.local
+  host_ip: 127.0.0.1
 
 tents_settings:
   tent_one:
@@ -120,11 +168,11 @@ Before setting up the background service, it's crucial to run the application di
 
 ```bash
 # Run the installed command from your terminal
-mistbuddy-lite
+mistbuddy-simple
 ```
 
 *   **Observe the output:** Watch the log messages printed to your terminal. Look for:
-    *   Confirmation that the configuration file from `~/.config/mistbuddy_simple/appconfig.yaml` was loaded successfully.
+    *   Confirmation that the configuration file from `~/.config/mistbuddy-simple/appconfig.yaml` was loaded successfully.
     *   Messages indicating connection attempts to the MQTT broker specified in your config.
     *   Successful connection and subscription messages.
     *   Any error messages or Python tracebacks. Common initial errors might relate to incorrect MQTT broker IP, connection refused, or misconfigured topics in `appconfig.yaml`.
@@ -132,9 +180,25 @@ mistbuddy-lite
 
 If the application starts, attempts to connect to MQTT, and doesn't produce obvious errors related to configuration or core functionality, the installation and basic setup are likely correct.
 
+## ⚙️ Step 7: Install Systemd Service File
 
-## ➡️🚀 Next Steps:
+This step copies the pre-configured systemd service file from the GitHub repository directly to the correct system location. This requires `sudo`.
 
-With the manual test successful, the application is ready to be run reliably as a background service.
+1.  **Download the Service File:**
+    Use `wget` to download the `mistbuddy_simple.service` file directly into `/etc/systemd/system/`.
+    ```bash
+    sudo wget -O /etc/systemd/system/mistbuddy-simple.service https://raw.githubusercontent.com/solarslurpi/mistbuddy_lite/main/mistbuddy_simple.service
+    ```
+    *(Note: We use `-O` to specify the output path and filename. We name it `mistbuddy-simple.service` for consistency with the application name, even though the source filename might differ).*
 
-The next logical step is to **set up the systemd service**. This involves creating a `.service` file in `/home/pi/.config/systemd/user/` which will allow the system to automatically start `mistbuddy-lite` on login/boot and restart it if it crashes. (Instructions for creating the systemd service file would typically follow here).
+2.  **Set Permissions:**
+    Ensure the downloaded file has the standard permissions.
+    ```bash
+    sudo chmod 644 /etc/systemd/system/mistbuddy-simple.service
+    ```
+
+The service file is now in place. The next step is to use `systemctl` commands (with `sudo`) to enable and start the service.
+
+sudo systemctl daemon-reload
+sudo systemctl enable mistbuddy-simple
+sudo systemctl start mistbuddy-simple
