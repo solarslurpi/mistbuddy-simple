@@ -187,7 +187,7 @@ This step copies the pre-configured systemd service file from the GitHub reposit
 1.  **Download the Service File:**
     Use `wget` to download the `mistbuddy_simple.service` file directly into `/etc/systemd/system/`.
     ```bash
-    sudo wget -O /etc/systemd/system/mistbuddy-simple.service https://raw.githubusercontent.com/solarslurpi/mistbuddy_lite/main/mistbuddy_simple.service
+    sudo wget -O /etc/systemd/system/mistbuddy-simple.service https://raw.githubusercontent.com/solarslurpi/mistbuddy-simple/main/mistbuddy-simple.service
     ```
     *(Note: We use `-O` to specify the output path and filename. We name it `mistbuddy-simple.service` for consistency with the application name, even though the source filename might differ).*
 

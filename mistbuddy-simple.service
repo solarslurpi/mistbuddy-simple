@@ -5,7 +5,7 @@ After=mosquitto.service
 [Service]
 Type=idle
 User=pi
-ExecStart=/home/pi/.local/bin/mistbuddy-lite
+ExecStart=/home/pi/.local/bin/mistbuddy-simple
 Restart=always
 [Install]
 WantedBy=multi-user.target
